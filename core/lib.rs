@@ -91,22 +91,41 @@ pub async fn start(torrent: &str) -> Result<()> {
     // All the possible messages, see https://wiki.theory.org/BitTorrentSpecification#Messages
 
     let mut keep_alive = BytesMut::with_capacity(4);
-    keep_alive.put_u32(0);
+    keep_alive.put_u8(0);
+    keep_alive.put_u8(0);
+    keep_alive.put_u8(0);
+    keep_alive.put_u8(0);
 
     let mut choke = BytesMut::with_capacity(5);
-    choke.put_u32(1);
+    choke.put_u8(0);
+    choke.put_u8(0);
+    choke.put_u8(0);
+    choke.put_u8(1);
+
     choke.put_u8(0);
 
     let mut unchoke = BytesMut::with_capacity(5);
-    unchoke.put_u32(1);
+    unchoke.put_u8(0);
+    unchoke.put_u8(0);
+    unchoke.put_u8(0);
+    unchoke.put_u8(1);
+
     unchoke.put_u8(1);
 
     let mut interested = BytesMut::with_capacity(5);
-    interested.put_u32(1);
+    interested.put_u8(0);
+    interested.put_u8(0);
+    interested.put_u8(0);
+    interested.put_u8(1);
+
     interested.put_u8(2);
 
     let mut not_interested = BytesMut::with_capacity(5);
-    not_interested.put_u32(1);
+    not_interested.put_u8(0);
+    not_interested.put_u8(0);
+    not_interested.put_u8(0);
+    not_interested.put_u8(1);
+
     not_interested.put_u8(3);
 
     Ok(())
@@ -114,7 +133,11 @@ pub async fn start(torrent: &str) -> Result<()> {
 
 fn build_have_message(payload: i32) -> BytesMut {
     let mut have = BytesMut::with_capacity(9);
-    have.put_u32(5);
+    have.put_u8(0);
+    have.put_u8(0);
+    have.put_u8(0);
+    have.put_u8(5);
+
     have.put_u8(4);
     have.put_i32(payload);
     have
