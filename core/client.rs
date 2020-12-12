@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use bytes::{Buf, BufMut, BytesMut};
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 use rand::random;
 use std::convert::TryFrom;
 use std::net::{Ipv4Addr, SocketAddrV4};
@@ -11,53 +11,62 @@ pub enum Actions {
     Scrape = 2,
 }
 
-impl TryFrom<i32> for Actions {
+impl TryFrom<u32> for Actions {
     type Error = anyhow::Error;
 
-    fn try_from(value: i32) -> Result<Self> {
+    fn try_from(value: u32) -> Result<Self> {
         match value {
-            x if x == Actions::Connect as i32 => Ok(Actions::Connect),
-            x if x == Actions::Announce as i32 => Ok(Actions::Announce),
-            x if x == Actions::Scrape as i32 => Ok(Actions::Scrape),
+            x if x == Actions::Connect as u32 => Ok(Actions::Connect),
+            x if x == Actions::Announce as u32 => Ok(Actions::Announce),
+            x if x == Actions::Scrape as u32 => Ok(Actions::Scrape),
             _ => Err(anyhow!("")),
         }
     }
 }
 
-pub const NONE: i32 = 0;
-pub const COMPLETED: i32 = 1;
-pub const STARTED: i32 = 2;
-pub const STOPPED: i32 = 3;
+pub const NONE: u32 = 0;
+pub const COMPLETED: u32 = 1;
+pub const STARTED: u32 = 2;
+pub const STOPPED: u32 = 3;
 
 pub const NUM_WANT: i32 = -1;
 
-pub const CHOKE: i32 = 0;
-pub const UNCHOKE: i32 = 1;
-pub const INTERESTED: i32 = 2;
-pub const NOT_INTERESTED: i32 = 3;
+pub const CHOKE: u32 = 0;
+pub const UNCHOKE: u32 = 1;
+pub const INTERESTED: u32 = 2;
+pub const NOT_INTERESTED: u32 = 3;
 
 pub struct Client {
+    /// Technically the announce url could be using http but since almost all of them use udp for now I'll just use that
     socket: UdpSocket,
+    /// Unique peer_id, in theory it can always be different
+    pub peer_id: Bytes,
 }
 
 impl Client {
-    pub async fn new() -> Result<Client> {
+    pub async fn new(name: &[u8; 8]) -> Result<Client> {
         let socket = UdpSocket::bind("0.0.0.0:0").await?;
+        let mut peer_id = BytesMut::with_capacity(20);
+        peer_id.put(&name[..]);
+        peer_id.put(&random::<[u8; 12]>()[..]);
 
-        Ok(Client { socket })
+        Ok(Client {
+            socket,
+            peer_id: peer_id.freeze(),
+        })
     }
 
     pub async fn connect(&self, url: &str) -> Result<ConnectResponse> {
         &self.socket.connect(url).await?;
 
-        const PROTOCOL_ID: i64 = 0x41727101980;
-        let transaction_id = random::<i32>();
+        const PROTOCOL_ID: u64 = 0x41727101980;
+        let transaction_id = random::<u32>();
 
         let mut connect_req = BytesMut::with_capacity(16);
 
-        connect_req.put_i64(PROTOCOL_ID);
-        connect_req.put_i32(Actions::Connect as i32);
-        connect_req.put_i32(transaction_id);
+        connect_req.put_u64(PROTOCOL_ID);
+        connect_req.put_u32(Actions::Connect as u32);
+        connect_req.put_u32(transaction_id);
 
         &self.socket.send(&connect_req).await?;
 
@@ -66,9 +75,9 @@ impl Client {
 
         &self.socket.recv(&mut connect_res).await?;
 
-        let action = Actions::try_from(connect_res.get_i32())?;
-        let transaction_id = connect_res.get_i32();
-        let connection_id = connect_res.get_i64();
+        let action = Actions::try_from(connect_res.get_u32())?;
+        let transaction_id = connect_res.get_u32();
+        let connection_id = connect_res.get_u64();
 
         Ok(ConnectResponse {
             action,
@@ -78,29 +87,27 @@ impl Client {
     }
 
     pub async fn announce(
-        self,
-        connection_id: i64,
+        &self,
+        connection_id: u64,
         info_hash: [u8; 20],
-        left: i64,
+        left: u64,
     ) -> Result<AnnounceResponse> {
-        let transaction_id = random::<i32>();
+        let transaction_id = random::<u32>();
 
-        let peer_id: [u8; 20] = random::<[u8; 20]>();
-
-        let key = random::<i32>();
+        let key = random::<u32>();
         let mut announce_req = BytesMut::with_capacity(98);
 
-        announce_req.put_i64(connection_id);
-        announce_req.put_i32(Actions::Announce as i32);
-        announce_req.put_i32(transaction_id);
+        announce_req.put_u64(connection_id);
+        announce_req.put_u32(Actions::Announce as u32);
+        announce_req.put_u32(transaction_id);
         announce_req.put_slice(&info_hash);
-        announce_req.put_slice(&peer_id);
-        announce_req.put_i64(0); // downloaded
-        announce_req.put_i64(left);
-        announce_req.put_i64(0); // uploaded
-        announce_req.put_i32(NONE);
-        announce_req.put_i32(0); // ip address
-        announce_req.put_i32(key);
+        announce_req.put_slice(&self.peer_id);
+        announce_req.put_u64(0); // downloaded
+        announce_req.put_u64(left);
+        announce_req.put_u64(0); // uploaded
+        announce_req.put_u32(NONE);
+        announce_req.put_u32(0); // ip address
+        announce_req.put_u32(key);
         announce_req.put_i32(NUM_WANT);
         announce_req.put_i16(6881); // port should be between 6881 and 6889
 
@@ -112,11 +119,11 @@ impl Client {
         let n = self.socket.recv(&mut announce_res).await?;
         announce_res.truncate(n);
 
-        let action = Actions::try_from(announce_res.get_i32())?;
-        let transaction_id = announce_res.get_i32();
-        let interval = announce_res.get_i32();
-        let leechers = announce_res.get_i32();
-        let seeders = announce_res.get_i32();
+        let action = Actions::try_from(announce_res.get_u32())?;
+        let transaction_id = announce_res.get_u32();
+        let interval = announce_res.get_u32();
+        let leechers = announce_res.get_u32();
+        let seeders = announce_res.get_u32();
         let mut peers: Vec<SocketAddrV4> = Vec::new();
 
         while 0 < announce_res.remaining() {
@@ -142,15 +149,15 @@ impl Client {
 
 pub struct ConnectResponse {
     pub action: Actions,
-    pub transaction_id: i32,
-    pub connection_id: i64,
+    pub transaction_id: u32,
+    pub connection_id: u64,
 }
 
 pub struct AnnounceResponse {
     pub action: Actions,
-    pub transaction_id: i32,
-    pub interval: i32,
-    pub leechers: i32,
-    pub seeders: i32,
+    pub transaction_id: u32,
+    pub interval: u32,
+    pub leechers: u32,
+    pub seeders: u32,
     pub peers: Vec<SocketAddrV4>,
 }

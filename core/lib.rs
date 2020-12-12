@@ -17,17 +17,15 @@ pub use client::Client;
 
 use meta_info::MetaInfo;
 
-pub const NONE: i32 = 0;
-pub const COMPLETED: i32 = 1;
-pub const STARTED: i32 = 2;
-pub const STOPPED: i32 = 3;
+pub const NONE: u32 = 0;
+pub const COMPLETED: u32 = 1;
+pub const STARTED: u32 = 2;
+pub const STOPPED: u32 = 3;
 
-pub const NUM_WANT: i32 = -1;
-
-pub const CHOKE: i32 = 0;
-pub const UNCHOKE: i32 = 1;
-pub const INTERESTED: i32 = 2;
-pub const NOT_INTERESTED: i32 = 3;
+pub const CHOKE: u32 = 0;
+pub const UNCHOKE: u32 = 1;
+pub const INTERESTED: u32 = 2;
+pub const NOT_INTERESTED: u32 = 3;
 
 pub async fn start(torrent: &str) -> Result<()> {
     println!("Parsing torrent");
@@ -49,19 +47,13 @@ pub async fn start(torrent: &str) -> Result<()> {
     println!("Connecting to {}", &url);
 
     // Initialize bittorent client
-    let client = Client::new().await?;
+    let client = Client::new(b"-LE0001-").await?;
+    println!("{:?}", client.peer_id);
     let connect_res = client.connect(&url).await?;
 
     let info_hash: [u8; 20] = meta_info.info_hash()?;
 
-    let peer_id: [u8; 20] = random::<[u8; 20]>();
-
-    let left = match meta_info.info {
-        meta_info::Info::SingleFile { length, .. } => length,
-        meta_info::Info::MultiFile { ref files, .. } => {
-            files.iter().fold(0, |index, file| index + file.length)
-        }
-    };
+    let left = meta_info.length();
 
     println!("Sending announce request");
 
@@ -72,12 +64,7 @@ pub async fn start(torrent: &str) -> Result<()> {
 
     let peers = announce_res.peers;
 
-    // Create tcp connection
-    // If the connection is refused it probably means this peer is no good
-    // In a proper client you'd want to connect to as many peers as possible
-    // but for the sake of simplicity I'll connect just to one for now
-
-    // let mut stream = TcpStream::connect(peers[0]).await?;
+ 
 
     // Build the handshake, this is the same for every peer
     let mut handshake = BytesMut::with_capacity(68);
@@ -86,60 +73,46 @@ pub async fn start(torrent: &str) -> Result<()> {
     handshake.put(&b"BitTorrent protocol"[..]); // pstr. Always BitTorrent protocol in the 1.0 protocol
     handshake.put_u64(0); // reserved bytes. All current implementations use all zeroes
     handshake.put_slice(&meta_info.info_hash()?); // torrent info hash
-    handshake.put_slice(&peer_id); // Unique peer_id, in theory it can always be different
+    handshake.put_slice(&client.peer_id);
 
     // All the possible messages, see https://wiki.theory.org/BitTorrentSpecification#Messages
 
     let mut keep_alive = BytesMut::with_capacity(4);
-    keep_alive.put_u8(0);
-    keep_alive.put_u8(0);
-    keep_alive.put_u8(0);
-    keep_alive.put_u8(0);
+    keep_alive.put_u32(0);
 
     let mut choke = BytesMut::with_capacity(5);
-    choke.put_u8(0);
-    choke.put_u8(0);
-    choke.put_u8(0);
-    choke.put_u8(1);
-
+    choke.put_u32(1);
     choke.put_u8(0);
 
     let mut unchoke = BytesMut::with_capacity(5);
-    unchoke.put_u8(0);
-    unchoke.put_u8(0);
-    unchoke.put_u8(0);
-    unchoke.put_u8(1);
-
+    unchoke.put_u32(1);
     unchoke.put_u8(1);
 
     let mut interested = BytesMut::with_capacity(5);
-    interested.put_u8(0);
-    interested.put_u8(0);
-    interested.put_u8(0);
-    interested.put_u8(1);
-
+    interested.put_u32(1);
     interested.put_u8(2);
 
     let mut not_interested = BytesMut::with_capacity(5);
-    not_interested.put_u8(0);
-    not_interested.put_u8(0);
-    not_interested.put_u8(0);
-    not_interested.put_u8(1);
-
+    not_interested.put_u32(1);
     not_interested.put_u8(3);
+
+       // Create tcp connection
+    // If the connection is refused it probably means this peer is no good
+    // In a proper client you'd want to connect to as many peers as possible
+    // but for the sake of simplicity I'll connect just to one for now
+
+    println!("Creating tcp stream");
+    let mut stream = TcpStream::connect(peers[10]).await?;
+    println!("{}", stream.local_addr()?.to_string());
 
     Ok(())
 }
 
-fn build_have_message(payload: i32) -> BytesMut {
+fn build_have_message(piece_index: u32) -> BytesMut {
     let mut have = BytesMut::with_capacity(9);
-    have.put_u8(0);
-    have.put_u8(0);
-    have.put_u8(0);
-    have.put_u8(5);
-
+    have.put_u32(5);
     have.put_u8(4);
-    have.put_i32(payload);
+    have.put_u32(piece_index);
     have
 }
 
@@ -150,6 +123,43 @@ fn build_have_message(payload: i32) -> BytesMut {
 //     bitfield.p
 // }
 
-// fn build_request_message(payload: i32) -> BytesMut {
+struct RequestPayload {
+    index: u32,
+    begin: u32,
+    length: u32,
+}
+
+fn build_request_message(payload: RequestPayload) -> BytesMut {
+    let mut request = BytesMut::with_capacity(17);
+    request.put_u32(13);
+    request.put_u8(6);
+
+    request.put_u32(payload.index);
+    request.put_u32(payload.begin);
+    request.put_u32(payload.length);
+    request
+}
+
+fn build_cancel_message(payload: RequestPayload) -> BytesMut {
+    let mut request = BytesMut::with_capacity(17);
+    request.put_u32(13);
+    request.put_u8(8);
+
+    request.put_u32(payload.index);
+    request.put_u32(payload.begin);
+    request.put_u32(payload.length);
+    request
+}
+
+fn build_port_message(listen_port: u16) -> BytesMut {
+    let mut port = BytesMut::with_capacity(7);
+    port.put_u32(3);
+    port.put_u8(9);
+
+    port.put_u16(listen_port);
+    port
+}
+
+// fn build_request_message(payload: u32) -> BytesMut {
 //     let mut request = BytesMut::with_capacity(17);
 // }
