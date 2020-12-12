@@ -1,8 +1,5 @@
 use anyhow::Result;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
-use rand::random;
-use std::convert::TryFrom;
-use std::net::{Ipv4Addr, SocketAddrV4};
 use tokio::{
     fs,
     net::{TcpStream, UdpSocket},
@@ -64,8 +61,6 @@ pub async fn start(torrent: &str) -> Result<()> {
 
     let peers = announce_res.peers;
 
- 
-
     // Build the handshake, this is the same for every peer
     let mut handshake = BytesMut::with_capacity(68);
 
@@ -96,7 +91,7 @@ pub async fn start(torrent: &str) -> Result<()> {
     not_interested.put_u32(1);
     not_interested.put_u8(3);
 
-       // Create tcp connection
+    // Create tcp connection
     // If the connection is refused it probably means this peer is no good
     // In a proper client you'd want to connect to as many peers as possible
     // but for the sake of simplicity I'll connect just to one for now

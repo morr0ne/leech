@@ -3,7 +3,7 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 use rand::random;
 use std::convert::TryFrom;
 use std::net::{Ipv4Addr, SocketAddrV4};
-use tokio::net::{TcpStream, UdpSocket};
+use tokio::net::UdpSocket;
 
 pub enum Actions {
     Connect = 0,
