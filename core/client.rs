@@ -19,22 +19,16 @@ impl TryFrom<u32> for Actions {
             x if x == Actions::Connect as u32 => Ok(Actions::Connect),
             x if x == Actions::Announce as u32 => Ok(Actions::Announce),
             x if x == Actions::Scrape as u32 => Ok(Actions::Scrape),
-            _ => Err(anyhow!("")),
+            _ => Err(anyhow!("Unknown action")),
         }
     }
 }
 
-pub const NONE: u32 = 0;
-pub const COMPLETED: u32 = 1;
-pub const STARTED: u32 = 2;
-pub const STOPPED: u32 = 3;
-
-pub const NUM_WANT: i32 = -1;
-
-pub const CHOKE: u32 = 0;
-pub const UNCHOKE: u32 = 1;
-pub const INTERESTED: u32 = 2;
-pub const NOT_INTERESTED: u32 = 3;
+const NONE: u32 = 0;
+// const COMPLETED: u32 = 1;
+// const STARTED: u32 = 2;
+// const STOPPED: u32 = 3;
+const NUM_WANT: i32 = -1;
 
 pub struct Client {
     /// Technically the announce url could be using http but since almost all of them use udp for now I'll just use that

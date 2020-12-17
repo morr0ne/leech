@@ -1,10 +1,6 @@
 use anyhow::Result;
-use bytes::{Buf, BufMut, Bytes, BytesMut};
-use tokio::{
-    fs,
-    net::{TcpStream, UdpSocket},
-    prelude::*,
-};
+use bytes::{BufMut, Bytes, BytesMut};
+use tokio::{fs, net::TcpStream, prelude::*};
 use url::Url;
 
 pub mod client;
@@ -13,16 +9,6 @@ pub mod meta_info;
 pub use client::Client;
 
 use meta_info::MetaInfo;
-
-pub const NONE: u32 = 0;
-pub const COMPLETED: u32 = 1;
-pub const STARTED: u32 = 2;
-pub const STOPPED: u32 = 3;
-
-pub const CHOKE: u32 = 0;
-pub const UNCHOKE: u32 = 1;
-pub const INTERESTED: u32 = 2;
-pub const NOT_INTERESTED: u32 = 3;
 
 pub async fn start(torrent: &str) -> Result<()> {
     println!("Parsing torrent");
@@ -61,35 +47,15 @@ pub async fn start(torrent: &str) -> Result<()> {
 
     let peers = announce_res.peers;
 
-    // Build the handshake, this is the same for every peer
-    let mut handshake = BytesMut::with_capacity(68);
-
-    handshake.put_u8(19); // pstrlen. Always 19 in the 1.0 protocol
-    handshake.put(&b"BitTorrent protocol"[..]); // pstr. Always BitTorrent protocol in the 1.0 protocol
-    handshake.put_u64(0); // reserved bytes. All current implementations use all zeroes
-    handshake.put_slice(&meta_info.info_hash()?); // torrent info hash
-    handshake.put_slice(&client.peer_id);
-
     // All the possible messages, see https://wiki.theory.org/BitTorrentSpecification#Messages
 
-    let mut keep_alive = BytesMut::with_capacity(4);
-    keep_alive.put_u32(0);
+    let handshake = build_handshake(meta_info, client.peer_id);
 
-    let mut choke = BytesMut::with_capacity(5);
-    choke.put_u32(1);
-    choke.put_u8(0);
-
-    let mut unchoke = BytesMut::with_capacity(5);
-    unchoke.put_u32(1);
-    unchoke.put_u8(1);
-
-    let mut interested = BytesMut::with_capacity(5);
-    interested.put_u32(1);
-    interested.put_u8(2);
-
-    let mut not_interested = BytesMut::with_capacity(5);
-    not_interested.put_u32(1);
-    not_interested.put_u8(3);
+    const KEEP_ALIVE: [u8; 4] = [0, 0, 0, 0];
+    const CHOKE: [u8; 5] = [0, 0, 0, 0, 1];
+    const UNCHOKE: [u8; 5] = [0, 0, 0, 1, 1];
+    const INTERESTED: [u8; 5] = [0, 0, 0, 1, 2];
+    const NOT_INTERESTED: [u8; 5] = [0, 0, 0, 1, 3];
 
     // Create tcp connection
     // If the connection is refused it probably means this peer is no good
@@ -97,18 +63,41 @@ pub async fn start(torrent: &str) -> Result<()> {
     // but for the sake of simplicity I'll connect just to one for now
 
     println!("Creating tcp stream");
-    let mut stream = TcpStream::connect(peers[10]).await?;
+    let mut stream = TcpStream::connect(peers[0]).await?;
     println!("{}", stream.local_addr()?.to_string());
+
+    let mut buffer = BytesMut::with_capacity(65508);
+    buffer.resize(65508, 0);
+
+    stream.write(&handshake).await?;
+    let n = stream.read(&mut buffer).await?;
+    buffer.truncate(n);
+
+    println!("{:?}", &buffer);
+    println!("{:?}", &buffer[..]);
+    println!("{:?}", &buffer.len());
+    println!("{}", std::str::from_utf8(&buffer[1..20])?);
+    // stream.read(&mut [0; 128]).await?;
 
     Ok(())
 }
 
-fn build_have_message(piece_index: u32) -> BytesMut {
+fn build_handshake(meta_info: MetaInfo, peer_id: Bytes) -> Bytes {
+    let mut handshake = BytesMut::with_capacity(68);
+    handshake.put_u8(19); // pstrlen. Always 19 in the 1.0 protocol
+    handshake.put(&b"BitTorrent protocol"[..]); // pstr. Always BitTorrent protocol in the 1.0 protocol
+    handshake.put_u64(0); // reserved bytes. All current implementations use all zeroes
+    handshake.put_slice(&meta_info.info_hash().unwrap()); // torrent info hash
+    handshake.put_slice(&peer_id);
+    handshake.freeze()
+}
+
+fn build_have_message(piece_index: u32) -> Bytes {
     let mut have = BytesMut::with_capacity(9);
     have.put_u32(5);
     have.put_u8(4);
     have.put_u32(piece_index);
-    have
+    have.freeze()
 }
 
 // I have yet to fully understand how this message works but since it's optional I'll look into it later
@@ -118,41 +107,35 @@ fn build_have_message(piece_index: u32) -> BytesMut {
 //     bitfield.p
 // }
 
-struct RequestPayload {
-    index: u32,
-    begin: u32,
-    length: u32,
-}
-
-fn build_request_message(payload: RequestPayload) -> BytesMut {
+fn build_request_message(index: u32, begin: u32, length: u32) -> Bytes {
     let mut request = BytesMut::with_capacity(17);
     request.put_u32(13);
     request.put_u8(6);
 
-    request.put_u32(payload.index);
-    request.put_u32(payload.begin);
-    request.put_u32(payload.length);
-    request
+    request.put_u32(index);
+    request.put_u32(begin);
+    request.put_u32(length);
+    request.freeze()
 }
 
-fn build_cancel_message(payload: RequestPayload) -> BytesMut {
-    let mut request = BytesMut::with_capacity(17);
-    request.put_u32(13);
-    request.put_u8(8);
+fn build_cancel_message(index: u32, begin: u32, length: u32) -> Bytes {
+    let mut cancel = BytesMut::with_capacity(17);
+    cancel.put_u32(13);
+    cancel.put_u8(8);
 
-    request.put_u32(payload.index);
-    request.put_u32(payload.begin);
-    request.put_u32(payload.length);
-    request
+    cancel.put_u32(index);
+    cancel.put_u32(begin);
+    cancel.put_u32(length);
+    cancel.freeze()
 }
 
-fn build_port_message(listen_port: u16) -> BytesMut {
+fn build_port_message(listen_port: u16) -> Bytes {
     let mut port = BytesMut::with_capacity(7);
     port.put_u32(3);
     port.put_u8(9);
 
     port.put_u16(listen_port);
-    port
+    port.freeze()
 }
 
 // fn build_request_message(payload: u32) -> BytesMut {
