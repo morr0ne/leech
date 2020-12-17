@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use sha1::{digest::FixedOutput, Digest, Sha1};
 use std::convert::TryInto;
-// use sha1::Sha1;
 
 #[derive(Serialize, Deserialize)]
 pub struct MetaInfo {
