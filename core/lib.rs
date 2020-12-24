@@ -1,6 +1,10 @@
 use anyhow::Result;
 use bytes::{BufMut, Bytes, BytesMut};
-use tokio::{fs, net::TcpStream, prelude::*};
+use tokio::{
+    fs,
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::TcpStream,
+};
 use url::Url;
 
 pub mod client;
