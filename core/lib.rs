@@ -1,4 +1,8 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use bendy::{
+    decoding::{Error as DecodingError, FromBencode, Object, ResultExt},
+    encoding::{AsString, Error as EncodingError, SingleItemEncoder, ToBencode},
+};
 use bytes::{BufMut, Bytes, BytesMut};
 use tokio::{
     fs,
@@ -19,7 +23,18 @@ pub async fn start(torrent: &str) -> Result<()> {
 
     // Read torrent and parse meta_info
     let t = fs::read(torrent).await?;
-    let meta_info: MetaInfo = serde_bencode::from_bytes(&t)?;
+
+    let meta_info = MetaInfo::from_bencode(&t).unwrap();
+
+    println!("{:#?}", &meta_info);
+
+    return match meta_info.to_bencode() {
+        Ok(be) => {
+            fs::write("temp/be.torrent", be).await?;
+            Ok(())
+        }
+        Err(err) => Err(anyhow!(err)),
+    };
 
     // Get announce tracker and make sure it's a valid url
     let tracker = Url::parse(&meta_info.announce)?;

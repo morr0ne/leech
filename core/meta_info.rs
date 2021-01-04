@@ -1,52 +1,52 @@
-use anyhow::Result;
-use serde::{Deserialize, Serialize};
-use serde_bytes::ByteBuf;
+use anyhow::{anyhow, Result};
+use bendy::{
+    decoding::{Error as DecodingError, FromBencode, Object, ResultExt},
+    encoding::{AsString, Error as EncodingError, SingleItemEncoder, ToBencode},
+};
 use sha1::{digest::FixedOutput, Digest, Sha1};
 use std::convert::TryInto;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct MetaInfo {
-    pub info: Info,
     pub announce: String,
+    pub info: Info,
     pub nodes: Option<Vec<Node>>,
     pub encoding: Option<String>,
-    pub httpseeds: Option<Vec<String>>,
-    #[serde(rename = "announce-list")]
-    pub announce_list: Option<Vec<Vec<String>>>,
-    #[serde(rename = "creation date")]
+    // #[serde(rename = "httpseeds")]
+    pub http_seeds: Option<Vec<String>>,
+    // #[serde(rename = "creation date")]
     pub creation_date: Option<u64>,
-    #[serde(rename = "comment")]
+    // #[serde(rename = "comment")]
     pub comment: Option<String>,
-    #[serde(rename = "created by")]
+    // #[serde(rename = "created by")]
     pub created_by: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct Node(String, u64);
 
-#[derive(Serialize, Deserialize)]
-#[serde(untagged)]
+#[derive(Debug)]
 pub enum Info {
-    MultiFile {
-        name: String,
-        files: Vec<File>,
-        #[serde(rename = "piece length")]
-        piece_length: u64,
-        pieces: ByteBuf,
-        private: Option<u8>,
-    },
     SingleFile {
         name: String,
         length: u64,
         md5sum: Option<String>,
-        #[serde(rename = "piece length")]
+        // #[serde(rename = "piece length")]
         piece_length: u64,
-        pieces: ByteBuf,
+        pieces: Vec<u8>,
+        private: Option<u8>,
+    },
+    MultiFile {
+        name: String,
+        files: Vec<File>,
+        // #[serde(rename = "piece length")]
+        piece_length: u64,
+        pieces: Vec<u8>,
         private: Option<u8>,
     },
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct File {
     pub path: Vec<String>,
     pub length: u64,
@@ -55,13 +55,16 @@ pub struct File {
 
 impl MetaInfo {
     pub fn info_hash(&self) -> Result<[u8; 20]> {
-        let info = serde_bencode::ser::to_bytes(&self.info)?;
+        match self.info.to_bencode() {
+            Ok(info) => {
+                let mut hasher = Sha1::new();
+                hasher.update(info);
+                let info_hash: [u8; 20] = hasher.finalize_fixed().try_into()?;
 
-        let mut hasher = Sha1::new();
-        hasher.update(info);
-        let info_hash: [u8; 20] = hasher.finalize_fixed().try_into()?;
-
-        Ok(info_hash)
+                Ok(info_hash)
+            }
+            Err(err) => Err(anyhow!(err)),
+        }
     }
 
     pub fn length(&self) -> u64 {
@@ -73,3 +76,228 @@ impl MetaInfo {
         }
     }
 }
+
+impl FromBencode for MetaInfo {
+    const EXPECTED_RECURSION_DEPTH: usize = 2048;
+
+    fn decode_bencode_object(object: Object) -> Result<Self, DecodingError>
+    where
+        Self: Sized,
+    {
+        let mut announce = None;
+        let mut info = None;
+        let mut nodes = None;
+        let mut encoding = None;
+        let mut http_seeds = None;
+        let mut creation_date = None;
+        let mut comment = None;
+        let mut created_by = None;
+
+        let mut dict_dec = object.try_into_dictionary()?;
+        while let Some(pair) = dict_dec.next_pair()? {
+            match pair {
+                (b"announce", value) => {
+                    announce = String::decode_bencode_object(value)
+                        .context("announce")
+                        .map(Some)?;
+                }
+                (b"info", value) => {
+                    info = Info::decode_bencode_object(value)
+                        .context("info")
+                        .map(Some)?;
+                }
+                (b"comment", value) => {
+                    comment = String::decode_bencode_object(value)
+                        .context("comment")
+                        .map(Some)?;
+                }
+                (b"creation date", value) => {
+                    creation_date = u64::decode_bencode_object(value)
+                        .context("creation_date")
+                        .map(Some)?;
+                }
+                (b"httpseeds", value) => {
+                    http_seeds = Vec::decode_bencode_object(value)
+                        .context("http_seeds")
+                        .map(Some)?;
+                }
+                (unknown_field, _) => {
+                    return Err(DecodingError::unexpected_field(String::from_utf8_lossy(
+                        unknown_field,
+                    )));
+                }
+            }
+        }
+
+        let announce = announce.ok_or_else(|| DecodingError::missing_field("announce"))?;
+        let info = info.ok_or_else(|| DecodingError::missing_field("info"))?;
+
+        Ok(MetaInfo {
+            announce,
+            info,
+            nodes,
+            encoding,
+            http_seeds,
+            creation_date,
+            comment,
+            created_by,
+        })
+    }
+}
+
+impl FromBencode for Info {
+    const EXPECTED_RECURSION_DEPTH: usize = 2048;
+
+    /// Treats object as dictionary containing all fields for the info struct.
+    /// On success the dictionary is parsed for the fields of info which are
+    /// necessary for torrent. Any missing field will result in a missing field
+    /// error which will stop the decoding.
+    fn decode_bencode_object(object: Object) -> Result<Self, DecodingError>
+    where
+        Self: Sized,
+    {
+        let mut length = None;
+        let mut name = None;
+        let mut piece_length = None;
+        let mut pieces = None;
+        let mut md5sum = None;
+        let mut private = None;
+
+        let mut dict_dec = object.try_into_dictionary()?;
+        while let Some(pair) = dict_dec.next_pair()? {
+            match pair {
+                (b"length", value) => {
+                    length = u64::decode_bencode_object(value)
+                        .context("length")
+                        .map(Some)?;
+                }
+                (b"name", value) => {
+                    name = String::decode_bencode_object(value)
+                        .context("name")
+                        .map(Some)?;
+                }
+                (b"piece length", value) => {
+                    piece_length = u64::decode_bencode_object(value)
+                        .context("piece_length")
+                        .map(Some)?;
+                }
+                (b"pieces", value) => {
+                    pieces = AsString::decode_bencode_object(value)
+                        .context("pieces")
+                        .map(|bytes| Some(bytes.0))?;
+                }
+                (unknown_field, _) => {
+                    return Err(DecodingError::unexpected_field(String::from_utf8_lossy(
+                        unknown_field,
+                    )));
+                }
+            }
+        }
+
+        let length = length.ok_or_else(|| DecodingError::missing_field("length"))?;
+        let name = name.ok_or_else(|| DecodingError::missing_field("name"))?;
+        let piece_length =
+            piece_length.ok_or_else(|| DecodingError::missing_field("piece_length"))?;
+        let pieces = pieces.ok_or_else(|| DecodingError::missing_field("pieces"))?;
+
+        // Check that we discovered all necessary fields
+        Ok(Info::SingleFile {
+            name,
+            length,
+            md5sum,
+            piece_length,
+            pieces,
+            private,
+        })
+    }
+}
+
+impl ToBencode for MetaInfo {
+    // Adds an additional recursion level -- itself formatted as dictionary --
+    // around the info struct.
+    const MAX_DEPTH: usize = Info::MAX_DEPTH + 1;
+
+    fn encode(&self, encoder: SingleItemEncoder) -> Result<(), EncodingError> {
+        encoder.emit_dict(|mut e| {
+            e.emit_pair(b"announce", &self.announce)?;
+            e.emit_pair(b"info", &self.info)?;
+            if let Some(encoding) = &self.encoding {
+                e.emit_pair(b"encoding", encoding)?;
+            }
+            if let Some(seeds) = &self.http_seeds {
+                e.emit_pair(b"httpseeds", seeds)?;
+            }
+            if let Some(creation_date) = &self.creation_date {
+                e.emit_pair(b"creation date", creation_date)?;
+            }
+            if let Some(comment) = &self.comment {
+                e.emit_pair(b"comment", comment)?;
+            }
+            if let Some(created_by) = &self.created_by {
+                e.emit_pair(b"created by", created_by)?;
+            }
+            Ok(())
+        })?;
+        Ok(())
+    }
+}
+
+impl ToBencode for Info {
+    // The struct is encoded as dictionary and all of it internals are encoded
+    // as flat values, i.e. strings or integers.
+    const MAX_DEPTH: usize = 2000;
+
+    fn encode(&self, encoder: SingleItemEncoder) -> Result<(), EncodingError> {
+        match self {
+            Info::SingleFile {
+                name,
+                length,
+                md5sum,
+                piece_length,
+                pieces,
+                private,
+            } => encoder.emit_dict(|mut e| {
+                e.emit_pair(b"name", name)?;
+                println!("encoding length");
+                e.emit_pair(b"length", length)?;
+                println!("encoded length");
+                if let Some(sum) = md5sum {
+                    e.emit_pair(b"md5sum", sum)?;
+                }
+                e.emit_pair(b"piece length", piece_length)?;
+                e.emit_pair(b"pieces", AsString(pieces))?;
+                if let Some(p) = private {
+                    e.emit_pair(b"private", p)?;
+                }
+                Ok(())
+            })?,
+            Info::MultiFile {
+                name,
+                files,
+                piece_length,
+                pieces,
+                private,
+            } => encoder.emit_dict(|mut e| {
+                // e.emit_pair(b"name", name)?;
+                // e.emit_pair(b"length", length)?;
+                // if let Some(sum) = md5sum {
+                //     e.emit_pair(b"md5sum", sum)?;
+                // }
+                // e.emit_pair(b"piece length", piece_length)?;
+                // e.emit_pair(b"pieces", AsString(pieces))?;
+                // if let Some(p) = private {
+                //     e.emit_pair(b"private", p)?;
+                // }
+                Ok(())
+            })?,
+        }
+        Ok(())
+    }
+}
+
+// name: String,
+// files: Vec<File>,
+// // #[serde(rename = "piece length")]
+// piece_length: u64,
+// pieces: Vec<u8>,
+// private: Option<u8>,
