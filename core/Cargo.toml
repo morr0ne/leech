@@ -5,14 +5,13 @@ authors = ["Federico Morrone <flickmor@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-anyhow = "1.0.36"
+anyhow = "1.0.37"
+bendy = "0.3.3"
 bytes = "1.0.0"
+hyper = "0.14.1"
 rand = "0.8.0"
-serde = { version = "1.0.118", features = ["derive"] }
-serde_bencode = "0.2.3"
-serde_bytes = "0.11.5"
 sha-1 = "0.9.2"
-tokio = { version = "1.0.0", features = ["fs","macros","net","rt-multi-thread","io-util"] }
+tokio = { version = "1.0.1", features = ["fs","net","rt-multi-thread","io-util"] }
 url = "2.2.0"
 
 [lib]
