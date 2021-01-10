@@ -1,7 +1,7 @@
 [package]
 name = "leech"
 version = "0.1.0"
-authors = ["Federico Morrone <flickmor@gmail.com>"]
+authors = ["Federico Morrone <contact@morrone.dev>"]
 edition = "2018"
 
 [dependencies]
