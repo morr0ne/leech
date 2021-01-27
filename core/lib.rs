@@ -23,18 +23,7 @@ pub async fn start(torrent: &str) -> Result<()> {
 
     // Read torrent and parse meta_info
     let t = fs::read(torrent).await?;
-
     let meta_info = MetaInfo::from_bencode(&t).unwrap();
-
-    println!("{:#?}", &meta_info);
-
-    return match meta_info.to_bencode() {
-        Ok(be) => {
-            fs::write("temp/be.torrent", be).await?;
-            Ok(())
-        }
-        Err(err) => Err(anyhow!(err)),
-    };
 
     // Get announce tracker and make sure it's a valid url
     let tracker = Url::parse(&meta_info.announce)?;
@@ -51,10 +40,10 @@ pub async fn start(torrent: &str) -> Result<()> {
     // Initialize bittorent client
     let client = Client::new(b"-LE0001-").await?;
     println!("{:?}", client.peer_id);
+
     let connect_res = client.connect(&url).await?;
 
     let info_hash: [u8; 20] = meta_info.info_hash()?;
-
     let left = meta_info.length();
 
     println!("Sending announce request");
@@ -65,9 +54,9 @@ pub async fn start(torrent: &str) -> Result<()> {
         .await?;
 
     let peers = announce_res.peers;
+    println!("Found {} peers", peers.len());
 
     // All the possible messages, see https://wiki.theory.org/BitTorrentSpecification#Messages
-
     let handshake = build_handshake(meta_info, client.peer_id);
 
     const KEEP_ALIVE: [u8; 4] = [0, 0, 0, 0];
@@ -82,7 +71,7 @@ pub async fn start(torrent: &str) -> Result<()> {
     // but for the sake of simplicity I'll connect just to one for now
 
     println!("Creating tcp stream");
-    let mut stream = TcpStream::connect(peers[0]).await?;
+    let mut stream = TcpStream::connect(peers[10]).await?;
     println!("{}", stream.local_addr()?.to_string());
 
     let mut buffer = BytesMut::with_capacity(65508);

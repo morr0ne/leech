@@ -51,7 +51,7 @@ impl Client {
     }
 
     pub async fn connect(&self, url: &str) -> Result<ConnectResponse> {
-        &self.socket.connect(url).await?;
+        self.socket.connect(url).await?;
 
         const PROTOCOL_ID: u64 = 0x41727101980;
         let transaction_id = random::<u32>();
@@ -62,12 +62,12 @@ impl Client {
         connect_req.put_u32(Actions::Connect as u32);
         connect_req.put_u32(transaction_id);
 
-        &self.socket.send(&connect_req).await?;
+        self.socket.send(&connect_req).await?;
 
         let mut connect_res = BytesMut::with_capacity(16);
         connect_res.resize(16, 0);
 
-        &self.socket.recv(&mut connect_res).await?;
+        self.socket.recv(&mut connect_res).await?;
 
         let action = Actions::try_from(connect_res.get_u32())?;
         let transaction_id = connect_res.get_u32();

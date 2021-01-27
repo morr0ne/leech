@@ -12,13 +12,9 @@ pub struct MetaInfo {
     pub info: Info,
     pub nodes: Option<Vec<Node>>,
     pub encoding: Option<String>,
-    // #[serde(rename = "httpseeds")]
     pub http_seeds: Option<Vec<String>>,
-    // #[serde(rename = "creation date")]
     pub creation_date: Option<u64>,
-    // #[serde(rename = "comment")]
     pub comment: Option<String>,
-    // #[serde(rename = "created by")]
     pub created_by: Option<String>,
 }
 
@@ -31,7 +27,6 @@ pub enum Info {
         name: String,
         length: u64,
         md5sum: Option<String>,
-        // #[serde(rename = "piece length")]
         piece_length: u64,
         pieces: Vec<u8>,
         private: Option<u8>,
@@ -39,7 +34,6 @@ pub enum Info {
     MultiFile {
         name: String,
         files: Vec<File>,
-        // #[serde(rename = "piece length")]
         piece_length: u64,
         pieces: Vec<u8>,
         private: Option<u8>,
@@ -86,12 +80,12 @@ impl FromBencode for MetaInfo {
     {
         let mut announce = None;
         let mut info = None;
-        let mut nodes = None;
-        let mut encoding = None;
+        let nodes = None;
+        let encoding = None;
         let mut http_seeds = None;
         let mut creation_date = None;
         let mut comment = None;
-        let mut created_by = None;
+        let created_by = None;
 
         let mut dict_dec = object.try_into_dictionary()?;
         while let Some(pair) = dict_dec.next_pair()? {
@@ -148,10 +142,6 @@ impl FromBencode for MetaInfo {
 impl FromBencode for Info {
     const EXPECTED_RECURSION_DEPTH: usize = 2048;
 
-    /// Treats object as dictionary containing all fields for the info struct.
-    /// On success the dictionary is parsed for the fields of info which are
-    /// necessary for torrent. Any missing field will result in a missing field
-    /// error which will stop the decoding.
     fn decode_bencode_object(object: Object) -> Result<Self, DecodingError>
     where
         Self: Sized,
@@ -160,8 +150,8 @@ impl FromBencode for Info {
         let mut name = None;
         let mut piece_length = None;
         let mut pieces = None;
-        let mut md5sum = None;
-        let mut private = None;
+        let md5sum = None;
+        let private = None;
 
         let mut dict_dec = object.try_into_dictionary()?;
         while let Some(pair) = dict_dec.next_pair()? {
@@ -200,7 +190,6 @@ impl FromBencode for Info {
             piece_length.ok_or_else(|| DecodingError::missing_field("piece_length"))?;
         let pieces = pieces.ok_or_else(|| DecodingError::missing_field("pieces"))?;
 
-        // Check that we discovered all necessary fields
         Ok(Info::SingleFile {
             name,
             length,
@@ -213,12 +202,10 @@ impl FromBencode for Info {
 }
 
 impl ToBencode for MetaInfo {
-    // Adds an additional recursion level -- itself formatted as dictionary --
-    // around the info struct.
     const MAX_DEPTH: usize = Info::MAX_DEPTH + 1;
 
     fn encode(&self, encoder: SingleItemEncoder) -> Result<(), EncodingError> {
-        encoder.emit_dict(|mut e| {
+        encoder.emit_unsorted_dict(|e| {
             e.emit_pair(b"announce", &self.announce)?;
             e.emit_pair(b"info", &self.info)?;
             if let Some(encoding) = &self.encoding {
@@ -243,9 +230,7 @@ impl ToBencode for MetaInfo {
 }
 
 impl ToBencode for Info {
-    // The struct is encoded as dictionary and all of it internals are encoded
-    // as flat values, i.e. strings or integers.
-    const MAX_DEPTH: usize = 2000;
+    const MAX_DEPTH: usize = 1;
 
     fn encode(&self, encoder: SingleItemEncoder) -> Result<(), EncodingError> {
         match self {
@@ -256,11 +241,9 @@ impl ToBencode for Info {
                 piece_length,
                 pieces,
                 private,
-            } => encoder.emit_dict(|mut e| {
+            } => encoder.emit_unsorted_dict(|e| {
                 e.emit_pair(b"name", name)?;
-                println!("encoding length");
                 e.emit_pair(b"length", length)?;
-                println!("encoded length");
                 if let Some(sum) = md5sum {
                     e.emit_pair(b"md5sum", sum)?;
                 }
@@ -277,17 +260,14 @@ impl ToBencode for Info {
                 piece_length,
                 pieces,
                 private,
-            } => encoder.emit_dict(|mut e| {
-                // e.emit_pair(b"name", name)?;
-                // e.emit_pair(b"length", length)?;
-                // if let Some(sum) = md5sum {
-                //     e.emit_pair(b"md5sum", sum)?;
-                // }
-                // e.emit_pair(b"piece length", piece_length)?;
-                // e.emit_pair(b"pieces", AsString(pieces))?;
-                // if let Some(p) = private {
-                //     e.emit_pair(b"private", p)?;
-                // }
+            } => encoder.emit_unsorted_dict(|e| {
+                e.emit_pair(b"name", name)?;
+                e.emit_pair(b"files", files)?;
+                e.emit_pair(b"piece length", piece_length)?;
+                e.emit_pair(b"pieces", AsString(pieces))?;
+                if let Some(p) = private {
+                    e.emit_pair(b"private", p)?;
+                }
                 Ok(())
             })?,
         }
@@ -295,9 +275,18 @@ impl ToBencode for Info {
     }
 }
 
-// name: String,
-// files: Vec<File>,
-// // #[serde(rename = "piece length")]
-// piece_length: u64,
-// pieces: Vec<u8>,
-// private: Option<u8>,
+impl ToBencode for File {
+    const MAX_DEPTH: usize = 1;
+
+    fn encode(&self, encoder: SingleItemEncoder) -> Result<(), EncodingError> {
+        encoder.emit_unsorted_dict(|e| {
+            e.emit_pair(b"path", &self.path)?;
+            e.emit_pair(b"length", &self.length)?;
+            if let Some(sum) = &self.md5sum {
+                e.emit_pair(b"md5sum", sum)?;
+            }
+            Ok(())
+        })?;
+        Ok(())
+    }
+}
