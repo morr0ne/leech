@@ -1,8 +1,5 @@
-use anyhow::{anyhow, Result};
-use bendy::{
-    decoding::{Error as DecodingError, FromBencode, Object, ResultExt},
-    encoding::{AsString, Error as EncodingError, SingleItemEncoder, ToBencode},
-};
+use anyhow::Result;
+use bendy::decoding::FromBencode;
 use bytes::{BufMut, Bytes, BytesMut};
 use tokio::{
     fs,
@@ -23,69 +20,75 @@ pub async fn start(torrent: &str) -> Result<()> {
 
     // Read torrent and parse meta_info
     let t = fs::read(torrent).await?;
-    let meta_info = MetaInfo::from_bencode(&t).unwrap();
+    let meta_info = MetaInfo::from_bencode(&t).expect("Failed to parse torrent");
 
-    // Get announce tracker and make sure it's a valid url
-    let tracker = Url::parse(&meta_info.announce)?;
+    if let Some(announce) = &meta_info.announce {
+        // Get announce url and make sure it's a valid url
+        let tracker = Url::parse(announce)?;
 
-    // Build the tracker url using ip and port
-    let url = format!(
-        "{}:{}",
-        tracker.host_str().unwrap(),
-        tracker.port().unwrap()
-    );
+        // Build the tracker url using ip and port
+        let url = format!(
+            "{}:{}",
+            tracker.host_str().unwrap(),
+            tracker.port().unwrap()
+        );
 
-    println!("Connecting to {}", &url);
+        println!("Connecting to {}", &url);
 
-    // Initialize bittorent client
-    let client = Client::new(b"-LE0001-").await?;
-    println!("{:?}", client.peer_id);
+        // Initialize bittorent client
+        let client = Client::new(b"-LE0001-").await?;
+        println!("{:?}", client.peer_id);
 
-    let connect_res = client.connect(&url).await?;
+        let connect_res = client.connect(&url).await?;
 
-    let info_hash: [u8; 20] = meta_info.info_hash()?;
-    let left = meta_info.length();
+        let info_hash: [u8; 20] = meta_info.info_hash()?;
+        let left = meta_info.length();
 
-    println!("Sending announce request");
+        println!("Sending announce request");
 
-    // Send announce request
-    let announce_res = client
-        .announce(connect_res.connection_id, info_hash, left)
-        .await?;
+        // Send announce request
+        let announce_res = client
+            .announce(connect_res.connection_id, info_hash, left)
+            .await?;
 
-    let peers = announce_res.peers;
-    println!("Found {} peers", peers.len());
+        let peers = announce_res.peers;
+        println!("Found {} peers", peers.len());
 
-    // All the possible messages, see https://wiki.theory.org/BitTorrentSpecification#Messages
-    let handshake = build_handshake(meta_info, client.peer_id);
+        // All the possible messages, see https://wiki.theory.org/BitTorrentSpecification#Messages
+        let handshake = build_handshake(meta_info, client.peer_id);
 
-    const KEEP_ALIVE: [u8; 4] = [0, 0, 0, 0];
-    const CHOKE: [u8; 5] = [0, 0, 0, 0, 1];
-    const UNCHOKE: [u8; 5] = [0, 0, 0, 1, 1];
-    const INTERESTED: [u8; 5] = [0, 0, 0, 1, 2];
-    const NOT_INTERESTED: [u8; 5] = [0, 0, 0, 1, 3];
+        const KEEP_ALIVE: [u8; 4] = [0, 0, 0, 0];
+        const CHOKE: [u8; 5] = [0, 0, 0, 0, 1];
+        const UNCHOKE: [u8; 5] = [0, 0, 0, 1, 1];
+        const INTERESTED: [u8; 5] = [0, 0, 0, 1, 2];
+        const NOT_INTERESTED: [u8; 5] = [0, 0, 0, 1, 3];
 
-    // Create tcp connection
-    // If the connection is refused it probably means this peer is no good
-    // In a proper client you'd want to connect to as many peers as possible
-    // but for the sake of simplicity I'll connect just to one for now
+        // Create tcp connection
+        // If the connection is refused it probably means this peer is no good
+        // In a proper client you'd want to connect to as many peers as possible and discard bad ones
+        // but for the sake of simplicity I'll connect just to one for now
 
-    println!("Creating tcp stream");
-    let mut stream = TcpStream::connect(peers[10]).await?;
-    println!("{}", stream.local_addr()?.to_string());
+        println!("Creating tcp stream");
+        let mut stream = TcpStream::connect(peers[10]).await?;
+        println!("{}", stream.local_addr()?.to_string());
 
-    let mut buffer = BytesMut::with_capacity(65508);
-    buffer.resize(65508, 0);
+        let mut buffer = BytesMut::with_capacity(65508);
+        buffer.resize(65508, 0);
 
-    stream.write(&handshake).await?;
-    let n = stream.read(&mut buffer).await?;
-    buffer.truncate(n);
+        stream.write(&handshake).await?;
+        let n = stream.read(&mut buffer).await?;
+        buffer.truncate(n);
 
-    println!("{:?}", &buffer);
-    println!("{:?}", &buffer[..]);
-    println!("{:?}", &buffer.len());
-    println!("{}", std::str::from_utf8(&buffer[1..20])?);
-    // stream.read(&mut [0; 128]).await?;
+        println!("{:?}", &buffer);
+        println!("{:?}", &buffer[..]);
+        println!("{:?}", &buffer.len());
+        println!("{}", std::str::from_utf8(&buffer[1..20])?);
+        // stream.read(&mut [0; 128]).await?;
+    } else {
+        // If no announce url is found it means we should lookup the DHT
+        // DHT is a very complicated topic so I won't even try for now
+        println!("No announce url found");
+    }
 
     Ok(())
 }

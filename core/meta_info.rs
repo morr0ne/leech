@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{bail, Result};
 use bendy::{
     decoding::{Error as DecodingError, FromBencode, Object, ResultExt},
     encoding::{AsString, Error as EncodingError, SingleItemEncoder, ToBencode},
@@ -6,45 +6,39 @@ use bendy::{
 use sha1::{digest::FixedOutput, Digest, Sha1};
 use std::convert::TryInto;
 
-#[derive(Debug)]
 pub struct MetaInfo {
-    pub announce: String,
-    pub info: Info,
-    pub nodes: Option<Vec<Node>>,
-    pub encoding: Option<String>,
-    pub http_seeds: Option<Vec<String>>,
-    pub creation_date: Option<u64>,
+    pub announce: Option<String>,
+    pub announce_list: Option<Vec<String>>,
     pub comment: Option<String>,
     pub created_by: Option<String>,
+    pub creation_date: Option<u64>,
+    pub encoding: Option<String>,
+    pub http_seeds: Option<Vec<String>>,
+    pub info: Info,
 }
 
-#[derive(Debug)]
-pub struct Node(String, u64);
-
-#[derive(Debug)]
 pub enum Info {
     SingleFile {
-        name: String,
         length: u64,
         md5sum: Option<String>,
+        name: String,
         piece_length: u64,
         pieces: Vec<u8>,
         private: Option<u8>,
     },
     MultiFile {
-        name: String,
         files: Vec<File>,
-        piece_length: u64,
+        name: String,
         pieces: Vec<u8>,
+        piece_length: u64,
         private: Option<u8>,
     },
 }
 
-#[derive(Debug)]
 pub struct File {
-    pub path: Vec<String>,
     pub length: u64,
     pub md5sum: Option<String>,
+    pub path: Vec<String>,
 }
 
 impl MetaInfo {
@@ -57,7 +51,7 @@ impl MetaInfo {
 
                 Ok(info_hash)
             }
-            Err(err) => Err(anyhow!(err)),
+            Err(err) => bail!(err),
         }
     }
 
@@ -79,43 +73,28 @@ impl FromBencode for MetaInfo {
         Self: Sized,
     {
         let mut announce = None;
-        let mut info = None;
-        let nodes = None;
-        let encoding = None;
-        let mut http_seeds = None;
-        let mut creation_date = None;
+        let mut announce_list = None;
         let mut comment = None;
-        let created_by = None;
+        let mut created_by = None;
+        let mut creation_date = None;
+        let mut encoding = None;
+        let mut http_seeds = None;
+        let mut info = None;
 
         let mut dict_dec = object.try_into_dictionary()?;
-        while let Some(pair) = dict_dec.next_pair()? {
-            match pair {
-                (b"announce", value) => {
-                    announce = String::decode_bencode_object(value)
-                        .context("announce")
-                        .map(Some)?;
+        while let Some((key, value)) = dict_dec.next_pair()? {
+            match key {
+                b"announce" => announce = Some(String::decode_bencode_object(value)?),
+                b"announce-list" => {
+                    announce_list = Some(Vec::<String>::decode_bencode_object(value)?)
                 }
-                (b"info", value) => {
-                    info = Info::decode_bencode_object(value)
-                        .context("info")
-                        .map(Some)?;
-                }
-                (b"comment", value) => {
-                    comment = String::decode_bencode_object(value)
-                        .context("comment")
-                        .map(Some)?;
-                }
-                (b"creation date", value) => {
-                    creation_date = u64::decode_bencode_object(value)
-                        .context("creation_date")
-                        .map(Some)?;
-                }
-                (b"httpseeds", value) => {
-                    http_seeds = Vec::decode_bencode_object(value)
-                        .context("http_seeds")
-                        .map(Some)?;
-                }
-                (unknown_field, _) => {
+                b"comment" => comment = Some(String::decode_bencode_object(value)?),
+                b"created by" => created_by = Some(String::decode_bencode_object(value)?),
+                b"creation date" => creation_date = Some(u64::decode_bencode_object(value)?),
+                b"encoding" => encoding = Some(String::decode_bencode_object(value)?),
+                b"httpseeds" => http_seeds = Some(Vec::decode_bencode_object(value)?),
+                b"info" => info = Some(Info::decode_bencode_object(value)?),
+                unknown_field => {
                     return Err(DecodingError::unexpected_field(String::from_utf8_lossy(
                         unknown_field,
                     )));
@@ -123,18 +102,17 @@ impl FromBencode for MetaInfo {
             }
         }
 
-        let announce = announce.ok_or_else(|| DecodingError::missing_field("announce"))?;
         let info = info.ok_or_else(|| DecodingError::missing_field("info"))?;
 
         Ok(MetaInfo {
             announce,
-            info,
-            nodes,
-            encoding,
-            http_seeds,
-            creation_date,
+            announce_list,
             comment,
             created_by,
+            creation_date,
+            encoding,
+            http_seeds,
+            info,
         })
     }
 }
@@ -147,36 +125,26 @@ impl FromBencode for Info {
         Self: Sized,
     {
         let mut length = None;
+        let mut md5sum = None;
         let mut name = None;
         let mut piece_length = None;
         let mut pieces = None;
-        let md5sum = None;
-        let private = None;
+        let mut private = None;
 
         let mut dict_dec = object.try_into_dictionary()?;
-        while let Some(pair) = dict_dec.next_pair()? {
-            match pair {
-                (b"length", value) => {
-                    length = u64::decode_bencode_object(value)
-                        .context("length")
-                        .map(Some)?;
-                }
-                (b"name", value) => {
-                    name = String::decode_bencode_object(value)
-                        .context("name")
-                        .map(Some)?;
-                }
-                (b"piece length", value) => {
-                    piece_length = u64::decode_bencode_object(value)
-                        .context("piece_length")
-                        .map(Some)?;
-                }
-                (b"pieces", value) => {
+        while let Some((key, value)) = dict_dec.next_pair()? {
+            match key {
+                b"length" => length = Some(u64::decode_bencode_object(value)?),
+                b"md5sum" => md5sum = Some(String::decode_bencode_object(value)?),
+                b"name" => name = Some(String::decode_bencode_object(value)?),
+                b"piece length" => piece_length = Some(u64::decode_bencode_object(value)?),
+                b"pieces" => {
                     pieces = AsString::decode_bencode_object(value)
                         .context("pieces")
                         .map(|bytes| Some(bytes.0))?;
                 }
-                (unknown_field, _) => {
+                b"private" => private = Some(u8::decode_bencode_object(value)?),
+                unknown_field => {
                     return Err(DecodingError::unexpected_field(String::from_utf8_lossy(
                         unknown_field,
                     )));
@@ -205,17 +173,12 @@ impl ToBencode for MetaInfo {
     const MAX_DEPTH: usize = Info::MAX_DEPTH + 1;
 
     fn encode(&self, encoder: SingleItemEncoder) -> Result<(), EncodingError> {
-        encoder.emit_unsorted_dict(|e| {
-            e.emit_pair(b"announce", &self.announce)?;
-            e.emit_pair(b"info", &self.info)?;
-            if let Some(encoding) = &self.encoding {
-                e.emit_pair(b"encoding", encoding)?;
+        encoder.emit_dict(|mut e| {
+            if let Some(announce) = &self.announce {
+                e.emit_pair(b"announce", announce)?;
             }
-            if let Some(seeds) = &self.http_seeds {
-                e.emit_pair(b"httpseeds", seeds)?;
-            }
-            if let Some(creation_date) = &self.creation_date {
-                e.emit_pair(b"creation date", creation_date)?;
+            if let Some(announce_list) = &self.announce_list {
+                e.emit_pair(b"announce-list", announce_list)?;
             }
             if let Some(comment) = &self.comment {
                 e.emit_pair(b"comment", comment)?;
@@ -223,6 +186,16 @@ impl ToBencode for MetaInfo {
             if let Some(created_by) = &self.created_by {
                 e.emit_pair(b"created by", created_by)?;
             }
+            if let Some(creation_date) = &self.creation_date {
+                e.emit_pair(b"creation date", creation_date)?;
+            }
+            if let Some(encoding) = &self.encoding {
+                e.emit_pair(b"encoding", encoding)?;
+            }
+            if let Some(seeds) = &self.http_seeds {
+                e.emit_pair(b"httpseeds", seeds)?;
+            }
+            e.emit_pair(b"info", &self.info)?;
             Ok(())
         })?;
         Ok(())
@@ -241,12 +214,12 @@ impl ToBencode for Info {
                 piece_length,
                 pieces,
                 private,
-            } => encoder.emit_unsorted_dict(|e| {
-                e.emit_pair(b"name", name)?;
+            } => encoder.emit_dict(|mut e| {
                 e.emit_pair(b"length", length)?;
                 if let Some(sum) = md5sum {
                     e.emit_pair(b"md5sum", sum)?;
                 }
+                e.emit_pair(b"name", name)?;
                 e.emit_pair(b"piece length", piece_length)?;
                 e.emit_pair(b"pieces", AsString(pieces))?;
                 if let Some(p) = private {
@@ -260,11 +233,11 @@ impl ToBencode for Info {
                 piece_length,
                 pieces,
                 private,
-            } => encoder.emit_unsorted_dict(|e| {
-                e.emit_pair(b"name", name)?;
+            } => encoder.emit_dict(|mut e| {
                 e.emit_pair(b"files", files)?;
-                e.emit_pair(b"piece length", piece_length)?;
+                e.emit_pair(b"name", name)?;
                 e.emit_pair(b"pieces", AsString(pieces))?;
+                e.emit_pair(b"piece length", piece_length)?;
                 if let Some(p) = private {
                     e.emit_pair(b"private", p)?;
                 }
@@ -279,12 +252,12 @@ impl ToBencode for File {
     const MAX_DEPTH: usize = 1;
 
     fn encode(&self, encoder: SingleItemEncoder) -> Result<(), EncodingError> {
-        encoder.emit_unsorted_dict(|e| {
-            e.emit_pair(b"path", &self.path)?;
+        encoder.emit_dict(|mut e| {
             e.emit_pair(b"length", &self.length)?;
             if let Some(sum) = &self.md5sum {
                 e.emit_pair(b"md5sum", sum)?;
             }
+            e.emit_pair(b"path", &self.path)?;
             Ok(())
         })?;
         Ok(())

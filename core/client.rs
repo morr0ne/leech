@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{bail, Result};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use rand::random;
 use std::convert::TryFrom;
@@ -19,7 +19,7 @@ impl TryFrom<u32> for Actions {
             x if x == Actions::Connect as u32 => Ok(Actions::Connect),
             x if x == Actions::Announce as u32 => Ok(Actions::Announce),
             x if x == Actions::Scrape as u32 => Ok(Actions::Scrape),
-            _ => Err(anyhow!("Unknown action")),
+            _ => bail!("Unknown action"),
         }
     }
 }
