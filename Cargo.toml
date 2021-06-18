@@ -9,6 +9,6 @@ members = [
 [profile.release]
 lto = true
 codegen-units = 1
-strip = "symbols"
+strip = true
 # opt-level = "z"
 # panic = "abort"
