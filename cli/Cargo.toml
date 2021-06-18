@@ -5,10 +5,10 @@ authors = ["Federico Morrone <contact@morrone.dev>"]
 edition = "2018"
 
 [dependencies]
-anyhow = "1.0.38"
+anyhow = "1.0.41"
 clap = { version = "2.33.3", default-features = false }
 leech_core = { path = "../core", version = "0.1" }
-tokio = { version = "1.1.1", features = ["macros","parking_lot"] }
+tokio = { version = "1.7.0", features = ["macros","parking_lot"] }
 
 [[bin]]
 name = "leech"
