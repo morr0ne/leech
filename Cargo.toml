@@ -4,6 +4,7 @@ cargo-features = ["strip"]
 members = [
   "cli",
   "core",
+  "metainfo",
 ]
 
 [profile.release]

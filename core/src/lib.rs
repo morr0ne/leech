@@ -1,6 +1,6 @@
 use anyhow::Result;
-use bendy::decoding::FromBencode;
 use bytes::{BufMut, Bytes, BytesMut};
+use metainfo::{bendy::decoding::FromBencode, MetaInfo};
 use tokio::{
     fs,
     io::{AsyncReadExt, AsyncWriteExt},
@@ -9,11 +9,7 @@ use tokio::{
 use url::Url;
 
 pub mod client;
-pub mod meta_info;
-
 pub use client::Client;
-
-use meta_info::MetaInfo;
 
 pub async fn start(torrent: &str) -> Result<()> {
     println!("Parsing torrent");

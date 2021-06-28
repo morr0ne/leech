@@ -1,0 +1,9 @@
+[package]
+name = "metainfo"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+anyhow = "1.0.41"
+bendy = "0.4.0-beta.1"
+sha-1 = "0.9.6"

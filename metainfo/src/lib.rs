@@ -6,13 +6,15 @@ use bendy::{
 use sha1::{digest::FixedOutput, Digest, Sha1};
 use std::convert::TryInto;
 
+pub use bendy;
+
 /// Dictionary containg vital information about the torrent
 pub struct MetaInfo {
     /// The announce url of the tracker.
     /// According to the specification this is always set.
     /// In the real world most torrents ditch it in favor of announce list or trackless peers
     ///
-    /// The url supports http tracking via get requests and udp tracking. It's worth noting that many trackers will accept either protocols regardless of the one specified
+    /// The url supports http tracking via get requests and udp tracking. It is worth noting that many trackers will accept either protocols regardless of the one specified
     pub announce: Option<String>,
     /// A list of list of announce urls.
     pub announce_list: Option<Vec<Vec<String>>>,
