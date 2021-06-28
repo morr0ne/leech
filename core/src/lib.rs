@@ -23,8 +23,8 @@ pub async fn start(torrent: &str) -> Result<()> {
         // Build the tracker url using ip and port
         let tracker = format!(
             "{}:{}",
-            announce.host_str().unwrap(),
-            announce.port().unwrap()
+            announce.0.host_str().unwrap(),
+            announce.0.port().unwrap()
         );
 
         println!("Connecting to {}", &tracker);

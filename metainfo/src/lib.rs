@@ -16,9 +16,9 @@ pub struct MetaInfo {
     /// In the real world most torrents ditch it in favor of announce list or trackless peers
     ///
     /// The url supports http tracking via get requests and udp tracking. It is worth noting that many trackers will accept either protocols regardless of the one specified
-    pub announce: Option<Url>,
+    pub announce: Option<UrlWrapper>,
     /// A list of list of announce urls.
-    pub announce_list: Option<Vec<Vec<String>>>,
+    pub announce_list: Option<Vec<Vec<UrlWrapper>>>,
     /// An optional comment about this torrent
     pub comment: Option<String>,
     /// Name of version of the program used to create the torrent
@@ -79,18 +79,22 @@ pub struct File {
     pub path: Vec<String>,
 }
 
+pub struct UrlWrapper(pub Url);
+
 impl MetaInfo {
     /// Returns the SHA-1 hash of the info dictionary
     pub fn info_hash(&self) -> Result<[u8; 20]> {
+        // Following spec, we first convert back into bencode
         match self.info.to_bencode() {
             Ok(info) => {
+                // and then calculate the sha1
                 let mut hasher = Sha1::new();
                 hasher.update(info);
                 let info_hash: [u8; 20] = hasher.finalize_fixed().try_into()?;
 
                 Ok(info_hash)
             }
-            Err(err) => bail!(err),
+            Err(err) => bail!(err), // TODO: better error handeling
         }
     }
 
@@ -124,14 +128,11 @@ impl FromBencode for MetaInfo {
         while let Some((key, value)) = dict_dec.next_pair()? {
             match key {
                 b"announce" => {
-                    announce = Some(
-                        Url::parse(&String::decode_bencode_object(value).context("announce")?)
-                            .expect("Failed to parse url"), // TODO: better error handeling
-                    )
+                    announce = Some(UrlWrapper::decode_bencode_object(value).context("announce")?)
                 }
                 b"announce-list" => {
                     announce_list = Some(
-                        Vec::<Vec<String>>::decode_bencode_object(value)
+                        Vec::<Vec<UrlWrapper>>::decode_bencode_object(value)
                             .context("announce-list")?,
                     )
                 }
@@ -288,7 +289,7 @@ impl ToBencode for MetaInfo {
     fn encode(&self, encoder: SingleItemEncoder) -> Result<(), EncodingError> {
         encoder.emit_dict(|mut e| {
             if let Some(announce) = &self.announce {
-                e.emit_pair(b"announce", announce.to_string())?;
+                e.emit_pair(b"announce", announce)?;
             }
             if let Some(announce_list) = &self.announce_list {
                 e.emit_pair(b"announce-list", announce_list)?;
@@ -382,5 +383,38 @@ impl ToBencode for File {
             Ok(())
         })?;
         Ok(())
+    }
+}
+
+impl From<UrlWrapper> for Url {
+    fn from(wrapper: UrlWrapper) -> Self {
+        wrapper.0
+    }
+}
+
+impl From<Url> for UrlWrapper {
+    fn from(url: Url) -> Self {
+        UrlWrapper(url)
+    }
+}
+
+impl FromBencode for UrlWrapper {
+    const EXPECTED_RECURSION_DEPTH: usize = 2048;
+
+    fn decode_bencode_object(object: Object) -> Result<Self, DecodingError>
+    where
+        Self: Sized,
+    {
+        Ok(UrlWrapper(
+            Url::parse(&String::decode_bencode_object(object)?).unwrap(), // TODO: better error handeling
+        ))
+    }
+}
+
+impl ToBencode for UrlWrapper {
+    const MAX_DEPTH: usize = 0;
+
+    fn encode(&self, encoder: SingleItemEncoder) -> Result<(), EncodingError> {
+        encoder.emit_str(self.0.as_str())
     }
 }
