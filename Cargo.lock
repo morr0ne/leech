@@ -332,7 +332,6 @@ dependencies = [
  "metainfo",
  "rand",
  "tokio",
- "url",
 ]
 
 [[package]]
@@ -378,6 +377,7 @@ dependencies = [
  "anyhow",
  "bendy",
  "sha-1",
+ "url",
 ]
 
 [[package]]

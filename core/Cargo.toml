@@ -11,4 +11,3 @@ hyper = "0.14.9"
 metainfo = { version = "0.1.0", path = "../metainfo" }
 rand = "0.8.4"
 tokio = { version = "1.7.1", features = ["io-util","fs","net","rt-multi-thread","parking_lot"] }
-url = "2.2.2"

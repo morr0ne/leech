@@ -5,6 +5,7 @@ use bendy::{
 };
 use sha1::{digest::FixedOutput, Digest, Sha1};
 use std::convert::TryInto;
+use url::Url;
 
 pub use bendy;
 
@@ -15,7 +16,7 @@ pub struct MetaInfo {
     /// In the real world most torrents ditch it in favor of announce list or trackless peers
     ///
     /// The url supports http tracking via get requests and udp tracking. It is worth noting that many trackers will accept either protocols regardless of the one specified
-    pub announce: Option<String>,
+    pub announce: Option<Url>,
     /// A list of list of announce urls.
     pub announce_list: Option<Vec<Vec<String>>>,
     /// An optional comment about this torrent
@@ -123,7 +124,10 @@ impl FromBencode for MetaInfo {
         while let Some((key, value)) = dict_dec.next_pair()? {
             match key {
                 b"announce" => {
-                    announce = Some(String::decode_bencode_object(value).context("announce")?)
+                    announce = Some(
+                        Url::parse(&String::decode_bencode_object(value).context("announce")?)
+                            .expect("Failed to parse url"), // TODO: better error handeling
+                    )
                 }
                 b"announce-list" => {
                     announce_list = Some(
@@ -284,7 +288,7 @@ impl ToBencode for MetaInfo {
     fn encode(&self, encoder: SingleItemEncoder) -> Result<(), EncodingError> {
         encoder.emit_dict(|mut e| {
             if let Some(announce) = &self.announce {
-                e.emit_pair(b"announce", announce)?;
+                e.emit_pair(b"announce", announce.to_string())?;
             }
             if let Some(announce_list) = &self.announce_list {
                 e.emit_pair(b"announce-list", announce_list)?;

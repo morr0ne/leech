@@ -6,7 +6,6 @@ use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
 };
-use url::Url;
 
 pub mod client;
 pub use client::Client;
@@ -16,26 +15,25 @@ pub async fn start(torrent: &str) -> Result<()> {
 
     // Read torrent and parse meta_info
     let t = fs::read(torrent).await?;
-    let meta_info = MetaInfo::from_bencode(&t).expect("Failed to parse torrent");
+    let meta_info = MetaInfo::from_bencode(&t).expect("Failed to parse torrent file");
 
     if let Some(announce) = &meta_info.announce {
         // Get announce url and make sure it's a valid url
-        let tracker = Url::parse(announce)?;
 
         // Build the tracker url using ip and port
-        let url = format!(
+        let tracker = format!(
             "{}:{}",
-            tracker.host_str().unwrap(),
-            tracker.port().unwrap()
+            announce.host_str().unwrap(),
+            announce.port().unwrap()
         );
 
-        println!("Connecting to {}", &url);
+        println!("Connecting to {}", &tracker);
 
         // Initialize bittorent client
         let client = Client::new(b"-LE0001-").await?;
         println!("{:?}", client.peer_id);
 
-        let connect_res = client.connect(&url).await?;
+        let connect_res = client.connect(&tracker).await?;
 
         let info_hash: [u8; 20] = meta_info.info_hash()?;
         let left = meta_info.length();
