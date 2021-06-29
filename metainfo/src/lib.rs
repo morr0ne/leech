@@ -10,6 +10,7 @@ use url::Url;
 pub use bendy;
 
 /// Dictionary containg vital information about the torrent
+#[derive(Debug)]
 pub struct MetaInfo {
     /// The announce url of the tracker.
     /// According to the specification this is always set.
@@ -34,6 +35,7 @@ pub struct MetaInfo {
 }
 
 /// A dictionary containing information about the file(s) of the torrent
+#[derive(Debug)]
 pub enum Info {
     /// Information about a single file
     SingleFile {
@@ -70,6 +72,7 @@ pub enum Info {
 }
 
 /// Dictionary containing information about a file
+#[derive(Debug)]
 pub struct File {
     /// Length of the file in bytes
     pub length: u64,
@@ -79,6 +82,7 @@ pub struct File {
     pub path: Vec<String>,
 }
 
+#[derive(Debug)]
 pub struct UrlWrapper(pub Url);
 
 impl MetaInfo {
