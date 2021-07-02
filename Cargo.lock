@@ -354,6 +354,7 @@ name = "leech_core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bendy",
  "bytes",
  "form_urlencoded",
  "hyper",
