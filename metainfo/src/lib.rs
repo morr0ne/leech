@@ -9,7 +9,7 @@ use url::Url;
 
 pub use bendy;
 
-/// Dictionary containg vital information about the torrent
+/// Dictionary containg information about the torrent
 #[derive(Debug)]
 pub struct MetaInfo {
     /// The announce url of the tracker.
