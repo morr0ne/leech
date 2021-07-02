@@ -18,31 +18,38 @@ pub async fn start(torrent: &str) -> Result<()> {
     let meta_info = MetaInfo::from_bencode(&t).expect("Failed to parse torrent file");
 
     if let Some(announce) = &meta_info.announce {
+        let announce = &announce.0;
         // Get announce url and make sure it's a valid url
+        println!("Found announce url: {}", announce.as_str());
+        println!("Protocol: {}", announce.scheme());
 
         // Build the tracker url using ip and port
         let tracker = format!(
             "{}:{}",
-            announce.0.host_str().unwrap(),
-            announce.0.port().unwrap()
+            announce.host_str().unwrap(),
+            announce.port().unwrap()
         );
 
-        println!("Connecting to {}", &tracker);
+        let info_hash = meta_info.info_hash()?;
+        let left = meta_info.length();
+
+        println!("Connecting to {}", announce.as_str());
 
         // Initialize bittorent client
         let client = Client::new(b"-LE0001-").await?;
         println!("{:?}", client.peer_id);
 
-        let connect_res = client.connect(&tracker).await?;
+        client.announce(announce.as_str(), info_hash, left).await?;
 
-        let info_hash: [u8; 20] = meta_info.info_hash()?;
-        let left = meta_info.length();
+        return Ok(());
+
+        let connect_res = client.connect_udp(&tracker).await?;
 
         println!("Sending announce request");
 
         // Send announce request
         let announce_res = client
-            .announce(connect_res.connection_id, info_hash, left)
+            .announce_udp(connect_res.connection_id, info_hash, left)
             .await?;
 
         let peers = announce_res.peers;

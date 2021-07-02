@@ -1,11 +1,20 @@
 use anyhow::{bail, Result};
+use bendy::{
+    decoding::{Error as DecodingError, FromBencode, Object, ResultExt},
+    encoding::{AsString, Error as EncodingError, SingleItemEncoder, ToBencode},
+};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
+use form_urlencoded::byte_serialize;
+use hyper::{body, client::HttpConnector, Uri};
 use rand::random;
 use std::{
     convert::TryFrom,
     net::{Ipv4Addr, SocketAddrV4},
 };
 use tokio::net::UdpSocket;
+use url::Url;
+
+pub type HttpClient<C = HttpConnector> = hyper::Client<C>;
 
 pub enum Actions {
     Connect = 0,
@@ -33,6 +42,7 @@ const NONE: u32 = 0;
 const NUM_WANT: i32 = -1;
 
 pub struct Client {
+    http_client: HttpClient,
     /// Technically the announce url could be using http but since almost all of them use udp for now I'll just use that
     socket: UdpSocket,
     /// Unique peer_id, in theory it can always be different
@@ -41,18 +51,65 @@ pub struct Client {
 
 impl Client {
     pub async fn new(name: &[u8; 8]) -> Result<Client> {
+        let http_client = HttpClient::builder().build_http();
         let socket = UdpSocket::bind("0.0.0.0:0").await?;
+
         let mut peer_id = BytesMut::with_capacity(20);
         peer_id.put(&name[..]);
         peer_id.put(&random::<[u8; 12]>()[..]);
 
         Ok(Client {
+            http_client,
             socket,
             peer_id: peer_id.freeze(),
         })
     }
 
-    pub async fn connect(&self, url: &str) -> Result<ConnectResponse> {
+    pub async fn announce(&self, url: &str, info_hash: [u8; 20], left: u64) -> Result<()> {
+        // To send the info hash we first need to encode it in a http friendly format
+        let mut encoded_info_hash = String::new();
+        encoded_info_hash.extend(byte_serialize(&info_hash));
+
+        // same as info hash
+        let mut encoded_peer_id = String::new();
+        encoded_peer_id.extend(byte_serialize(&info_hash));
+
+        // After converting parsing the url we insert all the query parameters and convert it back to a string
+        // The url standard only support utf-8 strings, we need to this so we can manually add the info hash and peer id later
+        let mut url = url
+            .parse::<Url>()?
+            .query_pairs_mut()
+            .append_pair("port", "6881")
+            .append_pair("uploaded", "")
+            .append_pair("downloaded", "0")
+            .append_pair("left", &left.to_string())
+            .finish()
+            .to_string();
+
+        // Manually add info hash and peer id
+        url.push_str(&format!(
+            "&info_hash={}&peer_id={}",
+            encoded_info_hash, encoded_peer_id,
+        ));
+
+        let uri: Uri = url
+            .parse()
+            .expect("Internal error: A valid url should always resolve to a valid uri");
+
+        let resp = self.http_client.get(uri).await?.into_body();
+        let body = body::to_bytes(resp).await?;
+
+        println!("{:?}", &body);
+
+        let resp = HttpAnnounceResponse::from_bencode(&body)
+            .expect("Failed to parse http announce response"); // TODO: better handling
+
+        dbg!(resp);
+
+        Ok(())
+    }
+
+    pub async fn connect_udp(&self, url: &str) -> Result<ConnectResponse> {
         self.socket.connect(url).await?;
 
         const PROTOCOL_ID: u64 = 0x41727101980;
@@ -82,7 +139,7 @@ impl Client {
         })
     }
 
-    pub async fn announce(
+    pub async fn announce_udp(
         &self,
         connection_id: u64,
         info_hash: [u8; 20],
@@ -157,3 +214,67 @@ pub struct AnnounceResponse {
     pub seeders: u32,
     pub peers: Vec<SocketAddrV4>,
 }
+
+#[derive(Debug)]
+pub struct HttpAnnounceResponse {
+    pub failure_reason: Option<String>,
+    pub interval: Option<u64>,
+    pub peers: Peer,
+}
+
+#[derive(Debug)]
+pub struct Peer {}
+
+impl FromBencode for HttpAnnounceResponse {
+    const EXPECTED_RECURSION_DEPTH: usize = 2048;
+
+    fn decode_bencode_object(
+        object: bendy::decoding::Object,
+    ) -> Result<Self, bendy::decoding::Error>
+    where
+        Self: Sized,
+    {
+        let mut dict_dec = object.try_into_dictionary()?;
+
+        let mut failure_reason = None;
+        let mut interval = None;
+        let peers = None;
+
+        while let Some((key, value)) = dict_dec.next_pair().context("pair")? {
+            match key {
+                b"failure reason" => {
+                    failure_reason =
+                        Some(String::decode_bencode_object(value).context("failure reason")?)
+                }
+                b"interval" => {
+                    interval = Some(u64::decode_bencode_object(value).context("interval")?)
+                }
+                b"peers" => {}
+                unknown_field => {
+                    return Err(DecodingError::unexpected_field(String::from_utf8_lossy(
+                        unknown_field,
+                    )));
+                }
+            }
+        }
+
+        let peers = peers.unwrap();
+
+        Ok(HttpAnnounceResponse {
+            failure_reason,
+            interval,
+            peers,
+        })
+    }
+}
+
+// impl FromBencode for Peer {
+//     const EXPECTED_RECURSION_DEPTH: usize = 2048;
+
+//     fn decode_bencode_object(object: Object) -> Result<Self, DecodingError>
+//     where
+//         Self: Sized,
+//     {
+//         Ok(Peer {})
+//     }
+// }
