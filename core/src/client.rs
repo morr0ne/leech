@@ -1,11 +1,8 @@
 use anyhow::{bail, Result};
-use bendy::{
-    decoding::{Error as DecodingError, FromBencode, Object, ResultExt},
-    encoding::{AsString, Error as EncodingError, SingleItemEncoder, ToBencode},
-};
+use bendy::decoding::{Error as DecodingError, FromBencode, Object, ResultExt};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use form_urlencoded::byte_serialize;
-use hyper::{body, client::HttpConnector, Uri};
+use hyper::{body, client::HttpConnector, Body, Method, Request as HttpRequest, Uri};
 use rand::random;
 use std::{
     convert::TryFrom,
@@ -65,46 +62,16 @@ impl Client {
         })
     }
 
-    pub async fn announce(&self, url: &str, info_hash: [u8; 20], left: u64) -> Result<()> {
-        // To send the info hash we first need to encode it in a http friendly format
-        let mut encoded_info_hash = String::new();
-        encoded_info_hash.extend(byte_serialize(&info_hash));
+    pub async fn announce(&self, url: &str, announce_request: &AnnounceRequest) -> Result<()> {
+        let req = announce_request.into_http_request(&mut url.parse()?);
 
-        // same as info hash
-        let mut encoded_peer_id = String::new();
-        encoded_peer_id.extend(byte_serialize(&info_hash));
-
-        // After converting parsing the url we insert all the query parameters and convert it back to a string
-        // The url standard only support utf-8 strings, we need to this so we can manually add the info hash and peer id later
-        let mut url = url
-            .parse::<Url>()?
-            .query_pairs_mut()
-            .append_pair("port", "6881")
-            .append_pair("uploaded", "")
-            .append_pair("downloaded", "0")
-            .append_pair("left", &left.to_string())
-            .finish()
-            .to_string();
-
-        // Manually add info hash and peer id
-        url.push_str(&format!(
-            "&info_hash={}&peer_id={}",
-            encoded_info_hash, encoded_peer_id,
-        ));
-
-        let uri: Uri = url
-            .parse()
-            .expect("Internal error: A valid url should always resolve to a valid uri");
-
-        let resp = self.http_client.get(uri).await?.into_body();
+        let resp = self.http_client.request(req).await?.into_body();
         let body = body::to_bytes(resp).await?;
 
         println!("{:?}", &body);
 
         let resp = HttpAnnounceResponse::from_bencode(&body)
             .expect("Failed to parse http announce response"); // TODO: better handling
-
-        dbg!(resp);
 
         Ok(())
     }
@@ -216,6 +183,17 @@ pub struct AnnounceResponse {
 }
 
 #[derive(Debug)]
+pub struct AnnounceRequest {
+    pub info_hash: [u8; 20],
+    pub peer_id: Bytes,
+    pub ip: Option<Ipv4Addr>,
+    pub port: u16,
+    pub uploaded: u64,
+    pub downloaded: u64,
+    pub left: u64,
+}
+
+#[derive(Debug)]
 pub struct HttpAnnounceResponse {
     pub failure_reason: Option<String>,
     pub interval: Option<u64>,
@@ -223,7 +201,46 @@ pub struct HttpAnnounceResponse {
 }
 
 #[derive(Debug)]
-pub struct Peer {}
+pub struct Peer;
+
+impl AnnounceRequest {
+    pub fn into_http_request(&self, url: &mut Url) -> HttpRequest<Body> {
+        // To send the info hash we first need to encode it in a http friendly format
+        let mut encoded_info_hash = String::new();
+        encoded_info_hash.extend(byte_serialize(&self.info_hash));
+
+        // same as info hash
+        let mut encoded_peer_id = String::new();
+        encoded_peer_id.extend(byte_serialize(&self.peer_id));
+
+        // After converting parsing the url we insert all the query parameters and convert it back to a string
+        // The url standard only support utf-8 strings, we need to this so we can manually add the info hash and peer id later
+        let mut url = url
+            .query_pairs_mut()
+            .append_pair("port", &self.port.to_string())
+            .append_pair("uploaded", &self.uploaded.to_string())
+            .append_pair("downloaded", &self.downloaded.to_string())
+            .append_pair("left", &self.left.to_string())
+            .finish()
+            .to_string();
+
+        // Manually add info hash and peer id
+        url.push_str(&format!(
+            "&info_hash={}&peer_id={}",
+            encoded_info_hash, encoded_peer_id,
+        ));
+
+        let uri: Uri = url
+            .parse()
+            .expect("Internal error: A valid url should always resolve to a valid uri");
+
+        HttpRequest::builder()
+            .method(Method::GET)
+            .uri(uri)
+            .body(Body::empty())
+            .expect("")
+    }
+}
 
 impl FromBencode for HttpAnnounceResponse {
     const EXPECTED_RECURSION_DEPTH: usize = 2048;

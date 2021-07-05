@@ -10,6 +10,8 @@ use tokio::{
 pub mod client;
 pub use client::Client;
 
+use crate::client::AnnounceRequest;
+
 pub async fn start(torrent: &str) -> Result<()> {
     println!("Parsing torrent");
 
@@ -39,7 +41,19 @@ pub async fn start(torrent: &str) -> Result<()> {
         let client = Client::new(b"-LE0001-").await?;
         println!("{:?}", client.peer_id);
 
-        client.announce(announce.as_str(), info_hash, left).await?;
+        let announce_request = AnnounceRequest {
+            info_hash,
+            peer_id: client.peer_id.clone(), // bad
+            ip: None,
+            port: 6881,
+            uploaded: 0,
+            downloaded: 0,
+            left,
+        };
+
+        client
+            .announce(announce.as_str(), &announce_request)
+            .await?;
 
         return Ok(());
 
