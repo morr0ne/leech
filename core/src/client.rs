@@ -1,5 +1,5 @@
 use anyhow::{bail, Result};
-use bendy::decoding::{Error as DecodingError, FromBencode, Object, ResultExt};
+use bendy::decoding::{Error as DecodingError, FromBencode, ResultExt};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use form_urlencoded::byte_serialize;
 use hyper::{body, client::HttpConnector, Body, Method, Request as HttpRequest, Uri};
@@ -62,7 +62,21 @@ impl Client {
         })
     }
 
-    pub async fn announce(&self, url: &str, announce_request: &AnnounceRequest) -> Result<()> {
+    pub async fn announce(
+        &self,
+        url: &Url,
+        announce_request: &AnnounceRequest,
+    ) -> Result<Vec<SocketAddrV4>> {
+        // self.announce_http(url.as_str(), announce_request).await?;
+        let connect_response = self.connect_udp(url).await?;
+        let announce_response = self
+            .announce_udp(connect_response.connection_id, announce_request)
+            .await?;
+
+        Ok(announce_response.peers)
+    }
+
+    pub async fn announce_http(&self, url: &str, announce_request: &AnnounceRequest) -> Result<()> {
         let req = announce_request.into_http_request(&mut url.parse()?);
 
         let resp = self.http_client.request(req).await?.into_body();
@@ -70,13 +84,16 @@ impl Client {
 
         println!("{:?}", &body);
 
-        let resp = HttpAnnounceResponse::from_bencode(&body)
-            .expect("Failed to parse http announce response"); // TODO: better handling
+        // let resp = HttpAnnounceResponse::from_bencode(&body)
+        //     .expect("Failed to parse http announce response"); // TODO: better handling
 
         Ok(())
     }
 
-    pub async fn connect_udp(&self, url: &str) -> Result<ConnectResponse> {
+    pub async fn connect_udp(&self, url: &Url) -> Result<ConnectResponse> {
+        // Build the tracker url using ip and port
+        let url = format!("{}:{}", url.host_str().unwrap(), url.port().unwrap());
+
         self.socket.connect(url).await?;
 
         const PROTOCOL_ID: u64 = 0x41727101980;
@@ -109,29 +126,10 @@ impl Client {
     pub async fn announce_udp(
         &self,
         connection_id: u64,
-        info_hash: [u8; 20],
-        left: u64,
+        announce_request: &AnnounceRequest,
     ) -> Result<AnnounceResponse> {
-        let transaction_id = random::<u32>();
-
-        let key = random::<u32>();
-        let mut announce_req = BytesMut::with_capacity(98);
-
-        announce_req.put_u64(connection_id);
-        announce_req.put_u32(Actions::Announce as u32);
-        announce_req.put_u32(transaction_id);
-        announce_req.put_slice(&info_hash);
-        announce_req.put_slice(&self.peer_id);
-        announce_req.put_u64(0); // downloaded
-        announce_req.put_u64(left);
-        announce_req.put_u64(0); // uploaded
-        announce_req.put_u32(NONE);
-        announce_req.put_u32(0); // ip address
-        announce_req.put_u32(key);
-        announce_req.put_i32(NUM_WANT);
-        announce_req.put_i16(6881); // port should be between 6881 and 6889
-
-        self.socket.send(&announce_req).await?;
+        let req = announce_request.into_udp_request(connection_id);
+        self.socket.send(&req).await?;
 
         let mut announce_res = BytesMut::with_capacity(65508);
         announce_res.resize(65508, 0);
@@ -239,6 +237,29 @@ impl AnnounceRequest {
             .uri(uri)
             .body(Body::empty())
             .expect("")
+    }
+
+    pub fn into_udp_request(&self, connection_id: u64) -> Bytes {
+        let mut announce_req = BytesMut::with_capacity(98);
+
+        let transaction_id = random::<u32>();
+        let key = random::<u32>();
+
+        announce_req.put_u64(connection_id);
+        announce_req.put_u32(Actions::Announce as u32);
+        announce_req.put_u32(transaction_id);
+        announce_req.put_slice(&self.info_hash);
+        announce_req.put_slice(&self.peer_id);
+        announce_req.put_u64(self.downloaded);
+        announce_req.put_u64(self.left);
+        announce_req.put_u64(self.uploaded);
+        announce_req.put_u32(NONE);
+        announce_req.put_u32(0); // ip address
+        announce_req.put_u32(key);
+        announce_req.put_i32(NUM_WANT);
+        announce_req.put_u16(self.port);
+
+        announce_req.freeze()
     }
 }
 
