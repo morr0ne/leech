@@ -47,12 +47,9 @@ pub struct Client {
 
 impl Client {
     pub async fn new() -> Result<Client> {
-        let http_client = HttpClient::builder().build(HttpsConnector::new());
-        let socket = UdpSocket::bind("0.0.0.0:0").await?;
-
         Ok(Client {
-            http_client,
-            socket,
+            http_client: HttpClient::builder().build(HttpsConnector::new()),
+            socket: UdpSocket::bind("0.0.0.0:0").await?,
         })
     }
 
