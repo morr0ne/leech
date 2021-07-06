@@ -3,6 +3,7 @@ use bendy::decoding::{Error as DecodingError, FromBencode, ResultExt};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use form_urlencoded::byte_serialize;
 use hyper::{body, client::HttpConnector, Body, Method, Request as HttpRequest, Uri};
+use hyper_tls::HttpsConnector;
 use rand::random;
 use std::{
     convert::TryFrom,
@@ -11,7 +12,7 @@ use std::{
 use tokio::net::UdpSocket;
 use url::Url;
 
-pub type HttpClient<C = HttpConnector> = hyper::Client<C>;
+pub type HttpClient<C = HttpsConnector<HttpConnector>> = hyper::Client<C>;
 
 pub enum Actions {
     Connect = 0,
@@ -48,7 +49,7 @@ pub struct Client {
 
 impl Client {
     pub async fn new(name: &[u8; 8]) -> Result<Client> {
-        let http_client = HttpClient::builder().build_http();
+        let http_client = HttpClient::builder().build(HttpsConnector::new());
         let socket = UdpSocket::bind("0.0.0.0:0").await?;
 
         let mut peer_id = BytesMut::with_capacity(20);
