@@ -8,19 +8,20 @@ use tokio::{
 };
 
 pub mod client;
+pub mod utils;
 
 pub use client::Client;
+pub use utils::peer_id;
 
-use crate::client::AnnounceRequest;
+use client::AnnounceRequest;
 
 pub async fn start(torrent: &str) -> Result<()> {
+    let peer_id = peer_id(b"-LE0001-");
+    let client = Client::new().await?;
+
     println!("Parsing torrent");
-    // Read torrent and parse meta_info
     let t = fs::read(torrent).await?;
     let meta_info = MetaInfo::from_bencode(&t).expect("Failed to parse torrent file");
-
-    // Initialize bittorent client
-    let client = Client::new(b"-LE0001-").await?;
 
     if let Some(announce) = &meta_info.announce {
         println!("Found announce url: {}", announce.as_str());
@@ -28,13 +29,9 @@ pub async fn start(torrent: &str) -> Result<()> {
         let info_hash = meta_info.info_hash()?;
         let left = meta_info.length();
 
-        println!("Connecting to {}", announce.as_str());
-
-        println!("{:?}", client.peer_id);
-
         let announce_request = AnnounceRequest {
             info_hash,
-            peer_id: client.peer_id.clone(), // bad
+            peer_id,
             ip: None,
             port: 6881,
             uploaded: 0,

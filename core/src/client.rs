@@ -43,23 +43,16 @@ pub struct Client {
     http_client: HttpClient,
     /// Technically the announce url could be using http but since almost all of them use udp for now I'll just use that
     socket: UdpSocket,
-    /// Unique peer_id, in theory it can always be different
-    pub peer_id: Bytes,
 }
 
 impl Client {
-    pub async fn new(name: &[u8; 8]) -> Result<Client> {
+    pub async fn new() -> Result<Client> {
         let http_client = HttpClient::builder().build(HttpsConnector::new());
         let socket = UdpSocket::bind("0.0.0.0:0").await?;
-
-        let mut peer_id = BytesMut::with_capacity(20);
-        peer_id.put(&name[..]);
-        peer_id.put(&random::<[u8; 12]>()[..]);
 
         Ok(Client {
             http_client,
             socket,
-            peer_id: peer_id.freeze(),
         })
     }
 
