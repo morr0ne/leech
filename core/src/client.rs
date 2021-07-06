@@ -7,7 +7,7 @@ use hyper_tls::HttpsConnector;
 use rand::random;
 use std::{
     convert::TryFrom,
-    net::{Ipv4Addr, SocketAddrV4},
+    net::{IpAddr, Ipv4Addr, SocketAddr},
 };
 use tokio::net::UdpSocket;
 use url::Url;
@@ -57,7 +57,7 @@ impl Client {
         &self,
         url: &Url,
         announce_request: &AnnounceRequest,
-    ) -> Result<Vec<SocketAddrV4>> {
+    ) -> Result<Vec<SocketAddr>> {
         // self.announce_http(url.as_str(), announce_request).await?;
         let connect_response = self.connect_udp(url).await?;
         let announce_response = self
@@ -133,7 +133,7 @@ impl Client {
         let interval = announce_res.get_u32();
         let leechers = announce_res.get_u32();
         let seeders = announce_res.get_u32();
-        let mut peers: Vec<SocketAddrV4> = Vec::new();
+        let mut peers: Vec<SocketAddr> = Vec::new();
 
         while 0 < announce_res.remaining() {
             let ip = Ipv4Addr::new(
@@ -142,7 +142,7 @@ impl Client {
                 announce_res.get_u8(),
                 announce_res.get_u8(),
             );
-            peers.push(SocketAddrV4::new(ip, announce_res.get_u16()))
+            peers.push(SocketAddr::new(IpAddr::V4(ip), announce_res.get_u16()))
         }
 
         Ok(AnnounceResponse {
@@ -168,7 +168,7 @@ pub struct AnnounceResponse {
     pub interval: u32,
     pub leechers: u32,
     pub seeders: u32,
-    pub peers: Vec<SocketAddrV4>,
+    pub peers: Vec<SocketAddr>,
 }
 
 #[derive(Debug)]
