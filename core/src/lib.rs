@@ -23,8 +23,6 @@ pub async fn start(torrent: &str) -> Result<()> {
     let client = Client::new(b"-LE0001-").await?;
 
     if let Some(announce) = &meta_info.announce {
-        let announce = &announce.0;
-
         println!("Found announce url: {}", announce.as_str());
 
         let info_hash = meta_info.info_hash()?;

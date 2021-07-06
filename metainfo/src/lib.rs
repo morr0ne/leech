@@ -17,9 +17,9 @@ pub struct MetaInfo {
     /// In the real world most torrents ditch it in favor of announce list or trackless peers
     ///
     /// The url supports http tracking via get requests and udp tracking. It is worth noting that many trackers will accept either protocols regardless of the one specified
-    pub announce: Option<UrlWrapper>,
+    pub announce: Option<Url>,
     /// A list of list of announce urls.
-    pub announce_list: Option<Vec<Vec<UrlWrapper>>>,
+    pub announce_list: Option<Vec<Vec<Url>>>,
     /// An optional comment about this torrent
     pub comment: Option<String>,
     /// Name of version of the program used to create the torrent
@@ -32,6 +32,8 @@ pub struct MetaInfo {
     pub http_seeds: Option<Vec<String>>,
     /// A dictionary containing information about the file(s) of the torrent
     pub info: Info,
+    // TODO: docs
+    pub url_list: Option<Vec<Url>>,
 }
 
 /// A dictionary containing information about the file(s) of the torrent
@@ -82,9 +84,6 @@ pub struct File {
     pub path: Vec<String>,
 }
 
-#[derive(Debug)]
-pub struct UrlWrapper(pub Url);
-
 impl MetaInfo {
     /// Returns the SHA-1 hash of the info dictionary
     pub fn info_hash(&self) -> Result<[u8; 20]> {
@@ -127,17 +126,28 @@ impl FromBencode for MetaInfo {
         let mut encoding = None;
         let mut http_seeds = None;
         let mut info = None;
+        let mut url_list = None;
 
         let mut dict_dec = object.try_into_dictionary()?;
         while let Some((key, value)) = dict_dec.next_pair()? {
             match key {
                 b"announce" => {
-                    announce = Some(UrlWrapper::decode_bencode_object(value).context("announce")?)
+                    announce = Some(
+                        Url::parse(&String::decode_bencode_object(value).context("announce")?)
+                            .expect("Invalid announce url"), // TODO: better error handling
+                    )
                 }
                 b"announce-list" => {
                     announce_list = Some(
-                        Vec::<Vec<UrlWrapper>>::decode_bencode_object(value)
-                            .context("announce-list")?,
+                        Vec::<Vec<String>>::decode_bencode_object(value)
+                            .context("announce-list")?
+                            .into_iter()
+                            .map(|v| {
+                                v.into_iter()
+                                    .map(|url| Url::parse(&url).expect("Invalid announce url")) // TODO: better error handling
+                                    .collect()
+                            })
+                            .collect(),
                     )
                 }
                 b"comment" => {
@@ -157,10 +167,20 @@ impl FromBencode for MetaInfo {
                     http_seeds = Some(Vec::decode_bencode_object(value).context("httpseeds")?)
                 }
                 b"info" => info = Some(Info::decode_bencode_object(value).context("info")?),
+                b"url-list" => {
+                    url_list = Some(
+                        Vec::<String>::decode_bencode_object(value)
+                            .context("url-list")?
+                            .into_iter()
+                            .map(|url| Url::parse(&url).expect("Invalid url-list")) // TODO: better error handling
+                            .collect(),
+                    )
+                }
                 unknown_field => {
                     return Err(DecodingError::unexpected_field(String::from_utf8_lossy(
                         unknown_field,
-                    )));
+                    )))
+                    .context("Metainfo");
                 }
             }
         }
@@ -176,6 +196,7 @@ impl FromBencode for MetaInfo {
             encoding,
             http_seeds,
             info,
+            url_list,
         })
     }
 }
@@ -214,7 +235,8 @@ impl FromBencode for Info {
                 unknown_field => {
                     return Err(DecodingError::unexpected_field(String::from_utf8_lossy(
                         unknown_field,
-                    )));
+                    )))
+                    .context("Info");
                 }
             }
         }
@@ -267,7 +289,6 @@ impl FromBencode for File {
                 b"path" => {
                     path = Some(Vec::<String>::decode_bencode_object(value).context("path")?)
                 }
-
                 unknown_field => {
                     return Err(DecodingError::unexpected_field(String::from_utf8_lossy(
                         unknown_field,
@@ -293,10 +314,16 @@ impl ToBencode for MetaInfo {
     fn encode(&self, encoder: SingleItemEncoder) -> Result<(), EncodingError> {
         encoder.emit_dict(|mut e| {
             if let Some(announce) = &self.announce {
-                e.emit_pair(b"announce", announce)?;
+                e.emit_pair(b"announce", announce.to_string())?;
             }
             if let Some(announce_list) = &self.announce_list {
-                e.emit_pair(b"announce-list", announce_list)?;
+                e.emit_pair::<Vec<String>>(
+                    b"announce-list",
+                    announce_list
+                        .into_iter()
+                        .map(|v| v.into_iter().map(|url| url.to_string()).collect())
+                        .collect(),
+                )?;
             }
             if let Some(comment) = &self.comment {
                 e.emit_pair(b"comment", comment)?;
@@ -312,6 +339,12 @@ impl ToBencode for MetaInfo {
             }
             if let Some(seeds) = &self.http_seeds {
                 e.emit_pair(b"httpseeds", seeds)?;
+            }
+            if let Some(url_list) = &self.url_list {
+                e.emit_pair::<Vec<String>>(
+                    b"url-list",
+                    url_list.into_iter().map(|url| url.to_string()).collect(),
+                )?;
             }
             e.emit_pair(b"info", &self.info)?;
             Ok(())
@@ -387,38 +420,5 @@ impl ToBencode for File {
             Ok(())
         })?;
         Ok(())
-    }
-}
-
-impl From<UrlWrapper> for Url {
-    fn from(wrapper: UrlWrapper) -> Self {
-        wrapper.0
-    }
-}
-
-impl From<Url> for UrlWrapper {
-    fn from(url: Url) -> Self {
-        UrlWrapper(url)
-    }
-}
-
-impl FromBencode for UrlWrapper {
-    const EXPECTED_RECURSION_DEPTH: usize = 2048;
-
-    fn decode_bencode_object(object: Object) -> Result<Self, DecodingError>
-    where
-        Self: Sized,
-    {
-        Ok(UrlWrapper(
-            Url::parse(&String::decode_bencode_object(object)?).unwrap(), // TODO: better error handeling
-        ))
-    }
-}
-
-impl ToBencode for UrlWrapper {
-    const MAX_DEPTH: usize = 0;
-
-    fn encode(&self, encoder: SingleItemEncoder) -> Result<(), EncodingError> {
-        encoder.emit_str(self.0.as_str())
     }
 }
