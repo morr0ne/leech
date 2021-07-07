@@ -41,7 +41,6 @@ const NUM_WANT: i32 = -1;
 
 pub struct Client {
     http_client: HttpClient,
-    /// Technically the announce url could be using http but since almost all of them use udp for now I'll just use that
     socket: UdpSocket,
 }
 
@@ -174,7 +173,7 @@ pub struct AnnounceResponse {
 #[derive(Debug)]
 pub struct AnnounceRequest {
     pub info_hash: [u8; 20],
-    pub peer_id: Bytes,
+    pub peer_id: [u8; 20],
     pub ip: Option<Ipv4Addr>,
     pub port: u16,
     pub uploaded: u64,
