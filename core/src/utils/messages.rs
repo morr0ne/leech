@@ -26,8 +26,12 @@ pub fn build_handshake(info_hash: &[u8; 20], peer_id: &[u8]) -> [u8; 68] {
 
 pub fn build_have_message(piece_index: u32) -> [u8; 9] {
     let mut have = BytesMut::with_capacity(9);
-    have.put_u32(5); // len
-    have.put_u8(4); // id
+
+    have.put_slice(&[
+        0, 0, 0, 5, // len
+        4, // id
+    ]);
+
     have.put_u32(piece_index); // piece_index
 
     // SAFETY: This is safe because we know the lenght of bytes
