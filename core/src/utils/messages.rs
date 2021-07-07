@@ -31,7 +31,6 @@ pub fn build_have_message(piece_index: u32) -> [u8; 9] {
         0, 0, 0, 5, // len
         4, // id
     ]);
-
     have.put_u32(piece_index); // piece_index
 
     // SAFETY: This is safe because we know the lenght of bytes
@@ -47,9 +46,11 @@ pub fn build_have_message(piece_index: u32) -> [u8; 9] {
 
 pub fn build_request_message(index: u32, begin: u32, length: u32) -> [u8; 17] {
     let mut request = BytesMut::with_capacity(17);
-    request.put_u32(13);
-    request.put_u8(6);
 
+    request.put_slice(&[
+        0, 0, 0, 13, // len
+        6,  // id
+    ]);
     request.put_u32(index);
     request.put_u32(begin);
     request.put_u32(length);
@@ -60,9 +61,11 @@ pub fn build_request_message(index: u32, begin: u32, length: u32) -> [u8; 17] {
 
 pub fn build_cancel_message(index: u32, begin: u32, length: u32) -> [u8; 17] {
     let mut cancel = BytesMut::with_capacity(17);
-    cancel.put_u32(13);
-    cancel.put_u8(8);
 
+    cancel.put_slice(&[
+        0, 0, 0, 13, // len
+        8,  // id
+    ]);
     cancel.put_u32(index);
     cancel.put_u32(begin);
     cancel.put_u32(length);
@@ -73,15 +76,13 @@ pub fn build_cancel_message(index: u32, begin: u32, length: u32) -> [u8; 17] {
 
 pub fn build_port_message(listen_port: u16) -> [u8; 7] {
     let mut port = BytesMut::with_capacity(7);
-    port.put_u32(3);
-    port.put_u8(9);
 
+    port.put_slice(&[
+        0, 0, 0, 3, // len
+        9, // id
+    ]);
     port.put_u16(listen_port);
 
     // SAFETY: This is safe because we know the lenght of bytes
     unsafe { slice_to_array(port) }
 }
-
-// fn build_request_message(payload: u32) -> BytesMut {
-//     let mut request = BytesMut::with_capacity(17);
-// }
