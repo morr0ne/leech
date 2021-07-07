@@ -1,6 +1,8 @@
 use bytes::{BufMut, BytesMut};
 use rand::random;
 
+pub mod messages;
+
 // TODO: There is definately a more efficient way to do this
 pub fn peer_id(name: &[u8; 8]) -> [u8; 20] {
     let mut peer_id = BytesMut::with_capacity(20);
