@@ -1,14 +1,17 @@
 use bytes::{BufMut, Bytes, BytesMut};
 
+use super::slice_to_array;
 
-pub fn build_handshake(info_hash: &[u8; 20], peer_id: &[u8]) -> Bytes {
+pub fn build_handshake(info_hash: &[u8; 20], peer_id: &[u8]) -> [u8; 68] {
     let mut handshake = BytesMut::with_capacity(68);
     handshake.put_u8(19); // pstrlen. Always 19 in the 1.0 protocol
     handshake.put(&b"BitTorrent protocol"[..]); // pstr. Always BitTorrent protocol in the 1.0 protocol
     handshake.put_u64(0); // reserved bytes. All current implementations use all zeroes
     handshake.put_slice(info_hash); // torrent info hash
     handshake.put_slice(peer_id);
-    handshake.freeze()
+
+    // SAFETY: This is safe because we know the lenght of bytes
+    unsafe { slice_to_array(handshake) }
 }
 
 pub fn build_have_message(piece_index: u32) -> Bytes {

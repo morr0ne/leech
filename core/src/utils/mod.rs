@@ -10,11 +10,15 @@ pub fn peer_id(name: &[u8; 8]) -> [u8; 20] {
     peer_id.put(&random::<[u8; 12]>()[..]);
 
     // SAFETY: This is safe because we know the lenght of bytes
-    unsafe { slice_to_array(peer_id.as_ref()) }
+    unsafe { slice_to_array(peer_id) }
 }
 
 // SAFETY: The caller must ensure the lenght fits
-pub unsafe fn slice_to_array<T: Copy, const N: usize>(slice: &[T]) -> [T; N] {
-    let ptr = slice.as_ptr() as *const [T; N];
+pub unsafe fn slice_to_array<T, S, const N: usize>(slice: S) -> [T; N]
+where
+    T: Copy,
+    S: AsRef<[T]>,
+{
+    let ptr = slice.as_ref().as_ptr() as *const [T; N];
     *ptr
 }
