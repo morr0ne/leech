@@ -75,7 +75,7 @@ impl Client {
         println!("{:?}", &body);
 
         // let resp = HttpAnnounceResponse::from_bencode(&body)
-        //     .expect("Failed to parse http announce response"); // TODO: better handling
+        //     .expect("Failed to parse http announce response"); // TODO: better error handling
 
         Ok(())
     }
