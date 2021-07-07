@@ -36,41 +36,33 @@ pub struct MetaInfo {
     pub url_list: Option<Vec<Url>>,
 }
 
+#[derive(Debug)]
+pub struct Info {
+    /// The name of the file or directory to store multiple files, respecting this field is not mandatory
+    name: String,
+    /// The number of bytes in each piece
+    piece_length: u64,
+    /// String consisting of the concatenation of all 20-byte SHA1 hash values, one per piece
+    pieces: Vec<u8>,
+    /// When set to 1 clients should only announce their presence via the tracker specified by the torrent
+    private: Option<u8>,
+    /// Unknown field
+    source: Option<String>,
+    files: FileKind,
+}
+
 /// A dictionary containing information about the file(s) of the torrent
 #[derive(Debug)]
-pub enum Info {
+pub enum FileKind {
     /// Information about a single file
     SingleFile {
         /// Length of the file in bytes
         length: u64,
         /// MD5 sum of the file
         md5sum: Option<String>,
-        /// The name of the file, respecting this field is not mandatory
-        name: String,
-        /// The number of bytes in each piece
-        piece_length: u64,
-        /// String consisting of the concatenation of all 20-byte SHA1 hash values, one per piece
-        pieces: Vec<u8>,
-        /// When set to 1 clients should only announce their presence via the tracker specified by the torrent
-        private: Option<u8>,
-        /// Unknown field
-        source: Option<String>,
     },
-    /// Information about multiple files
-    MultiFile {
-        /// A list of dictionaries, each containing information about one file
-        files: Vec<File>,
-        /// The name of the directory in which to store the files, respecting this field is not mandatory
-        name: String,
-        /// The number of bytes in each piece
-        piece_length: u64,
-        /// String consisting of the concatenation of all 20-byte SHA1 hash values, one per piece
-        pieces: Vec<u8>,
-        /// When set to 1 clients should only announce their presence via the tracker specified by the torrent
-        private: Option<u8>,
-        /// Unknown field
-        source: Option<String>,
-    },
+    /// A list of dictionaries, each containing information about one file
+    MultiFile(Vec<File>),
 }
 
 /// Dictionary containing information about a file
@@ -102,11 +94,9 @@ impl MetaInfo {
     }
 
     pub fn length(&self) -> u64 {
-        match self.info {
-            Info::SingleFile { length, .. } => length,
-            Info::MultiFile { ref files, .. } => {
-                files.iter().fold(0, |index, file| index + file.length)
-            }
+        match &self.info.files {
+            FileKind::SingleFile { length, .. } => length.clone(), // TODO: probably a better way to do this
+            FileKind::MultiFile(files) => files.iter().fold(0, |index, file| index + file.length),
         }
     }
 }
@@ -246,27 +236,19 @@ impl FromBencode for Info {
             piece_length.ok_or_else(|| DecodingError::missing_field("piece_length"))?;
         let pieces = pieces.ok_or_else(|| DecodingError::missing_field("pieces"))?;
 
-        if let Some(files) = files {
-            Ok(Info::MultiFile {
-                files,
-                name,
-                piece_length,
-                pieces,
-                private,
-                source,
-            })
-        } else {
-            let length = length.ok_or_else(|| DecodingError::missing_field("length"))?;
-            Ok(Info::SingleFile {
-                name,
-                length,
-                md5sum,
-                piece_length,
-                pieces,
-                private,
-                source,
-            })
-        }
+        Ok(Info {
+            name,
+            piece_length,
+            pieces,
+            private,
+            source,
+            files: if let Some(files) = files {
+                FileKind::MultiFile(files)
+            } else {
+                let length = length.ok_or_else(|| DecodingError::missing_field("length"))?;
+                FileKind::SingleFile { length, md5sum }
+            },
+        })
     }
 }
 
@@ -357,52 +339,30 @@ impl ToBencode for Info {
     const MAX_DEPTH: usize = 1;
 
     fn encode(&self, encoder: SingleItemEncoder) -> Result<(), EncodingError> {
-        match self {
-            Info::SingleFile {
-                name,
-                length,
-                md5sum,
-                piece_length,
-                pieces,
-                private,
-                source,
-            } => encoder.emit_dict(|mut e| {
-                e.emit_pair(b"length", length)?;
-                if let Some(sum) = md5sum {
-                    e.emit_pair(b"md5sum", sum)?;
+        encoder.emit_dict(|mut e| {
+            e.emit_pair(b"name", &self.name)?;
+            e.emit_pair(b"piece length", self.piece_length)?;
+            e.emit_pair(b"pieces", AsString(&self.pieces))?;
+            if let Some(private) = self.private {
+                e.emit_pair(b"private", private)?;
+            }
+            if let Some(source) = &self.source {
+                e.emit_pair(b"source", source)?;
+            }
+
+            match &self.files {
+                FileKind::SingleFile { length, md5sum } => {
+                    e.emit_pair(b"length", length)?;
+                    if let Some(sum) = md5sum {
+                        e.emit_pair(b"md5sum", sum)?;
+                    }
                 }
-                e.emit_pair(b"name", name)?;
-                e.emit_pair(b"piece length", piece_length)?;
-                e.emit_pair(b"pieces", AsString(pieces))?;
-                if let Some(p) = private {
-                    e.emit_pair(b"private", p)?;
-                }
-                if let Some(p) = source {
-                    e.emit_pair(b"source", p)?;
-                }
-                Ok(())
-            })?,
-            Info::MultiFile {
-                name,
-                files,
-                piece_length,
-                pieces,
-                private,
-                source,
-            } => encoder.emit_dict(|mut e| {
-                e.emit_pair(b"files", files)?;
-                e.emit_pair(b"name", name)?;
-                e.emit_pair(b"piece length", piece_length)?;
-                e.emit_pair(b"pieces", AsString(pieces))?;
-                if let Some(p) = private {
-                    e.emit_pair(b"private", p)?;
-                }
-                if let Some(p) = source {
-                    e.emit_pair(b"source", p)?;
-                }
-                Ok(())
-            })?,
-        }
+                FileKind::MultiFile(files) => e.emit_pair(b"files", files)?,
+            }
+
+            Ok(())
+        })?;
+
         Ok(())
     }
 }
