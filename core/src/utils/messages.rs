@@ -10,9 +10,13 @@ pub const NOT_INTERESTED: [u8; 5] = [0, 0, 0, 1, 3];
 
 pub fn build_handshake(info_hash: &[u8; 20], peer_id: &[u8]) -> [u8; 68] {
     let mut handshake = BytesMut::with_capacity(68);
-    handshake.put_u8(19); // pstrlen. Always 19 in the 1.0 protocol
-    handshake.put(&b"BitTorrent protocol"[..]); // pstr. Always BitTorrent protocol in the 1.0 protocol
-    handshake.put_u64(0); // reserved bytes. All current implementations use all zeroes
+
+    handshake.put_slice(&[
+        19, // pstrlen. Always 19 in the 1.0 protocol
+        66, 105, 116, 84, 111, 114, 114, 101, 110, 116, 32, 112, 114, 111, 116, 111, 99, 111,
+        108, // pstr. Always "BitTorrent protocol" in the 1.0 protocol
+        0, 0, 0, 0, 0, 0, 0, 0, // reserved bytes. All current implementations use all zeroes
+    ]);
     handshake.put_slice(info_hash); // torrent info hash
     handshake.put_slice(peer_id);
 
@@ -77,4 +81,3 @@ pub fn build_port_message(listen_port: u16) -> [u8; 7] {
 // fn build_request_message(payload: u32) -> BytesMut {
 //     let mut request = BytesMut::with_capacity(17);
 // }
-
