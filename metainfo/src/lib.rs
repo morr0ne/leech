@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::Result;
 use bendy::{
     decoding::{Error as DecodingError, FromBencode, Object, ResultExt},
     encoding::{AsString, Error as EncodingError, SingleItemEncoder, ToBencode},
@@ -80,17 +80,13 @@ impl MetaInfo {
     /// Returns the SHA-1 hash of the info dictionary
     pub fn info_hash(&self) -> Result<[u8; 20]> {
         // Following spec, we first convert back into bencode
-        match self.info.to_bencode() {
-            Ok(info) => {
-                // and then calculate the sha1
-                let mut hasher = Sha1::new();
-                hasher.update(info);
-                let info_hash: [u8; 20] = hasher.finalize_fixed().try_into()?;
+        let info = self.info.to_bencode()?; // TODO: better error handeling
 
-                Ok(info_hash)
-            }
-            Err(err) => bail!(err), // TODO: better error handeling
-        }
+        let mut hasher = Sha1::new();
+        hasher.update(info);
+        let info_hash: [u8; 20] = hasher.finalize_fixed().try_into()?;
+
+        Ok(info_hash)
     }
 
     pub fn length(&self) -> u64 {
@@ -340,6 +336,16 @@ impl ToBencode for Info {
 
     fn encode(&self, encoder: SingleItemEncoder) -> Result<(), EncodingError> {
         encoder.emit_dict(|mut e| {
+            match &self.files {
+                FileKind::MultiFile(files) => e.emit_pair(b"files", files)?,
+                FileKind::SingleFile { length, md5sum } => {
+                    e.emit_pair(b"length", length)?;
+                    if let Some(sum) = md5sum {
+                        e.emit_pair(b"md5sum", sum)?;
+                    }
+                }
+            }
+
             e.emit_pair(b"name", &self.name)?;
             e.emit_pair(b"piece length", self.piece_length)?;
             e.emit_pair(b"pieces", AsString(&self.pieces))?;
@@ -348,16 +354,6 @@ impl ToBencode for Info {
             }
             if let Some(source) = &self.source {
                 e.emit_pair(b"source", source)?;
-            }
-
-            match &self.files {
-                FileKind::SingleFile { length, md5sum } => {
-                    e.emit_pair(b"length", length)?;
-                    if let Some(sum) = md5sum {
-                        e.emit_pair(b"md5sum", sum)?;
-                    }
-                }
-                FileKind::MultiFile(files) => e.emit_pair(b"files", files)?,
             }
 
             Ok(())
