@@ -39,7 +39,6 @@ const NONE: u32 = 0;
 // const COMPLETED: u32 = 1;
 // const STARTED: u32 = 2;
 // const STOPPED: u32 = 3;
-const NUM_WANT: i32 = -1;
 
 pub struct Client {
     http_client: HttpClient,
@@ -248,7 +247,7 @@ impl AnnounceRequest {
         announce_req.put_u32(NONE);
         announce_req.put_u32(0); // ip address
         announce_req.put_u32(key);
-        announce_req.put_i32(NUM_WANT);
+        announce_req.put_i32(-1); // num_want
         announce_req.put_u16(self.port);
 
         unsafe { slice_to_array(announce_req) }
