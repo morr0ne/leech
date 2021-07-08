@@ -1,3 +1,7 @@
+#![deny(future_incompatible)]
+#![deny(nonstandard_style)]
+#![deny(rust_2018_idioms)]
+
 use anyhow::Result;
 use bytes::BytesMut;
 use metainfo::{bendy::decoding::FromBencode, MetaInfo};
@@ -47,7 +51,6 @@ pub async fn start(torrent: &str) -> Result<()> {
 
         // All the possible messages, see https://wiki.theory.org/BitTorrentSpecification#Messages
         let handshake = build_handshake(&info_hash, &peer_id);
-        println!("Handshake: {:?}", handshake);
 
         // Create tcp connection
         // If the connection is refused it probably means this peer is no good
@@ -55,7 +58,7 @@ pub async fn start(torrent: &str) -> Result<()> {
         // but for the sake of simplicity I'll connect just to one for now
 
         println!("Creating tcp stream");
-        let mut stream = TcpStream::connect(peers.as_slice()[78]).await?;
+        let mut stream = TcpStream::connect(peers[30]).await?;
         println!("Connected to {}", stream.peer_addr()?.to_string());
 
         let mut buffer = BytesMut::with_capacity(65508);
@@ -65,11 +68,9 @@ pub async fn start(torrent: &str) -> Result<()> {
         let n = stream.read(&mut buffer).await?;
         buffer.truncate(n);
 
-        println!("{:?}", &buffer);
-        println!("{:?}", &buffer[..]);
         println!("{:?}", &buffer.len());
-        println!("{}", std::str::from_utf8(&buffer[1..20])?);
-        // stream.read(&mut [0; 128]).await?;
+        println!("{}", String::from_utf8_lossy(&buffer[1..20]));
+        println!("{:?}", &buffer[..]);
     } else {
         // If no announce url is found it means we should lookup the DHT
         // DHT is a very complicated topic so I won't even try for now

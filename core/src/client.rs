@@ -257,7 +257,7 @@ impl FromBencode for HttpAnnounceResponse {
     const EXPECTED_RECURSION_DEPTH: usize = 2048;
 
     fn decode_bencode_object(
-        object: bendy::decoding::Object,
+        object: bendy::decoding::Object<'_, '_>,
     ) -> Result<Self, bendy::decoding::Error>
     where
         Self: Sized,
