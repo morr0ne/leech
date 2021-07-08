@@ -7,7 +7,7 @@ use hyper_tls::HttpsConnector;
 use rand::random;
 use std::{
     convert::TryFrom,
-    net::{IpAddr, Ipv4Addr, SocketAddr},
+    net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4},
 };
 use tokio::net::UdpSocket;
 use url::Url;
@@ -49,7 +49,7 @@ impl Client {
     pub async fn new() -> Result<Client> {
         Ok(Client {
             http_client: HttpClient::builder().build(HttpsConnector::new()),
-            socket: UdpSocket::bind("0.0.0.0:0").await?,
+            socket: UdpSocket::bind(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0)).await?,
         })
     }
 
