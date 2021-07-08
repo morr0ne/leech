@@ -14,6 +14,7 @@ pub fn peer_id(name: &[u8; 8]) -> [u8; 20] {
 }
 
 // SAFETY: The caller must ensure the lenght fits
+#[inline]
 pub unsafe fn slice_to_array<T, S, const N: usize>(slice: S) -> [T; N]
 where
     T: Copy,
