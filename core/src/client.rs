@@ -1,6 +1,6 @@
 use anyhow::{bail, Result};
 use bendy::decoding::{Error as DecodingError, FromBencode, ResultExt};
-use bytes::{Buf, BufMut, Bytes, BytesMut};
+use bytes::{Buf, BufMut, BytesMut};
 use form_urlencoded::byte_serialize;
 use hyper::{body, client::HttpConnector, Body, Method, Request as HttpRequest, Uri};
 use hyper_tls::HttpsConnector;
@@ -11,6 +11,8 @@ use std::{
 };
 use tokio::net::UdpSocket;
 use url::Url;
+
+use crate::utils::slice_to_array;
 
 pub type HttpClient<C = HttpsConnector<HttpConnector>> = hyper::Client<C>;
 
@@ -229,7 +231,7 @@ impl AnnounceRequest {
             .expect("")
     }
 
-    pub fn into_udp_request(&self, connection_id: u64) -> Bytes {
+    pub fn into_udp_request(&self, connection_id: u64) -> [u8; 98] {
         let mut announce_req = BytesMut::with_capacity(98);
 
         let transaction_id = random::<u32>();
@@ -249,7 +251,7 @@ impl AnnounceRequest {
         announce_req.put_i32(NUM_WANT);
         announce_req.put_u16(self.port);
 
-        announce_req.freeze()
+        unsafe { slice_to_array(announce_req) }
     }
 }
 
