@@ -102,13 +102,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "clients"
-version = "0.1.0"
-dependencies = [
- "phf",
-]
-
-[[package]]
 name = "core-foundation"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -417,6 +410,7 @@ dependencies = [
  "hyper",
  "hyper-tls",
  "metainfo",
+ "peers",
  "rand",
  "tokio",
  "url",
@@ -601,6 +595,13 @@ dependencies = [
  "redox_syscall",
  "smallvec",
  "winapi",
+]
+
+[[package]]
+name = "peers"
+version = "0.1.0"
+dependencies = [
+ "phf",
 ]
 
 [[package]]

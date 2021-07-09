@@ -8,6 +8,7 @@ edition = "2018"
 anyhow = "1.0.41"
 bendy = "0.4.0-beta.1"
 bytes = "1.0.1"
+peers = { version = "0.1.0", path = "../peers" }
 form_urlencoded = "1.0.1"
 hyper = { version = "0.14.10", default-features = false, features = ["client", "http1", "http2", "runtime", "stream", "tcp"] }
 hyper-tls = "0.5.0"

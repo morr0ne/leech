@@ -3,7 +3,7 @@
 #![deny(rust_2018_idioms)]
 
 use anyhow::Result;
-use bytes::BytesMut;
+use bytes::{Buf, BytesMut};
 use metainfo::{bendy::decoding::FromBencode, MetaInfo};
 use tokio::{
     fs,
@@ -58,7 +58,7 @@ pub async fn start(torrent: &str) -> Result<()> {
         // but for the sake of simplicity I'll connect just to one for now
 
         println!("Creating tcp stream");
-        let mut stream = TcpStream::connect(peers[30]).await?;
+        let mut stream = TcpStream::connect(peers[25]).await?;
         println!("Connected to {}", stream.peer_addr()?.to_string());
 
         let mut buffer = BytesMut::with_capacity(65508);
@@ -68,9 +68,47 @@ pub async fn start(torrent: &str) -> Result<()> {
         let n = stream.read(&mut buffer).await?;
         buffer.truncate(n);
 
-        println!("{:?}", &buffer.len());
-        println!("{}", String::from_utf8_lossy(&buffer[1..20]));
         println!("{:?}", &buffer[..]);
+
+        let pstrlen = buffer.get_u8();
+
+        // TODO: if it wasn't obvious, there must be a better solution than calling get_u8 19 times -_-
+        let pstr = [
+            buffer.get_u8(),
+            buffer.get_u8(),
+            buffer.get_u8(),
+            buffer.get_u8(),
+            buffer.get_u8(),
+            buffer.get_u8(),
+            buffer.get_u8(),
+            buffer.get_u8(),
+            buffer.get_u8(),
+            buffer.get_u8(),
+            buffer.get_u8(),
+            buffer.get_u8(),
+            buffer.get_u8(),
+            buffer.get_u8(),
+            buffer.get_u8(),
+            buffer.get_u8(),
+            buffer.get_u8(),
+            buffer.get_u8(),
+            buffer.get_u8(),
+        ];
+
+        buffer.advance(20); // skip info_hash
+        buffer.advance(8); // skip reserved bytes
+
+        let peer_id = &buffer[0..20];
+        let id = std::str::from_utf8(&peer_id[1..3])?;
+
+        println!("{}", id);
+
+        let parsed_id = peers::STANDARD_PEERS.get(id).unwrap();
+
+        println!("{}", pstrlen);
+        println!("{}", String::from_utf8_lossy(&pstr));
+        println!("{}", String::from_utf8_lossy(&peer_id));
+        println!("{}", parsed_id);
     } else {
         // If no announce url is found it means we should lookup the DHT
         // DHT is a very complicated topic so I won't even try for now

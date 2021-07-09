@@ -4,7 +4,7 @@ cargo-features = ["strip"]
 members = [
   "cli",
   "core",
-  "clients",
+  "peers",
   "metainfo",
 ]
 
