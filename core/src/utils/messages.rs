@@ -1,6 +1,4 @@
-use bytes::{BufMut, BytesMut};
-
-use super::slice_to_array;
+use super::build_array;
 
 pub const KEEP_ALIVE: [u8; 4] = [0, 0, 0, 0];
 pub const CHOKE: [u8; 5] = [0, 0, 0, 0, 1];
@@ -10,7 +8,7 @@ pub const NOT_INTERESTED: [u8; 5] = [0, 0, 0, 1, 3];
 
 pub fn build_handshake(info_hash: &[u8; 20], peer_id: &[u8]) -> [u8; 68] {
     unsafe {
-        build_message(&[
+        build_array([
             &[
                 19, // pstrlen. Always 19 in the 1.0 protocol
                 66, 105, 116, 84, 111, 114, 114, 101, 110, 116, 32, 112, 114, 111, 116, 111, 99,
@@ -23,10 +21,9 @@ pub fn build_handshake(info_hash: &[u8; 20], peer_id: &[u8]) -> [u8; 68] {
         ])
     }
 }
-
 pub fn build_have_message(piece_index: u32) -> [u8; 9] {
     unsafe {
-        build_message(&[
+        build_array([
             &[
                 0, 0, 0, 5, // len
                 4, // id
@@ -45,7 +42,7 @@ pub fn build_have_message(piece_index: u32) -> [u8; 9] {
 
 pub fn build_request_message(index: u32, begin: u32, length: u32) -> [u8; 17] {
     unsafe {
-        build_message(&[
+        build_array([
             &[
                 0, 0, 0, 13, // len
                 6,  // id
@@ -56,10 +53,9 @@ pub fn build_request_message(index: u32, begin: u32, length: u32) -> [u8; 17] {
         ])
     }
 }
-
 pub fn build_cancel_message(index: u32, begin: u32, length: u32) -> [u8; 17] {
     unsafe {
-        build_message(&[
+        build_array([
             &[
                 0, 0, 0, 13, // len
                 8,  // id
@@ -73,7 +69,7 @@ pub fn build_cancel_message(index: u32, begin: u32, length: u32) -> [u8; 17] {
 
 pub fn build_port_message(listen_port: u16) -> [u8; 7] {
     unsafe {
-        build_message(&[
+        build_array([
             &[
                 0, 0, 0, 3, // len
                 9, // id
@@ -81,16 +77,4 @@ pub fn build_port_message(listen_port: u16) -> [u8; 7] {
             &listen_port.to_be_bytes(),
         ])
     }
-}
-
-// SAFETY: same as slice_to_array
-// TODO: turn this into a macro
-pub unsafe fn build_message<const N: usize>(payload: &[&[u8]]) -> [u8; N] {
-    let mut message = BytesMut::with_capacity(N);
-
-    for p in payload.into_iter() {
-        message.put_slice(p)
-    }
-
-    slice_to_array(message)
 }
