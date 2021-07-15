@@ -6,7 +6,7 @@ pub const UNCHOKE: [u8; 5] = [0, 0, 0, 1, 1];
 pub const INTERESTED: [u8; 5] = [0, 0, 0, 1, 2];
 pub const NOT_INTERESTED: [u8; 5] = [0, 0, 0, 1, 3];
 
-pub fn build_handshake(info_hash: &[u8; 20], peer_id: &[u8]) -> [u8; 68] {
+pub fn build_handshake(info_hash: &[u8; 20], peer_id: &[u8; 20]) -> [u8; 68] {
     unsafe {
         build_array([
             &[
