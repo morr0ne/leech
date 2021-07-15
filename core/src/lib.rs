@@ -15,7 +15,7 @@ pub mod client;
 pub mod utils;
 
 pub use client::Client;
-pub use utils::{messages::build_handshake, peer_id};
+pub use utils::{messages::Messages, peer_id};
 
 use client::AnnounceRequest;
 
@@ -50,7 +50,7 @@ pub async fn start(torrent: &str) -> Result<()> {
         println!("Found {} peers", peers.len());
 
         // All the possible messages, see https://wiki.theory.org/BitTorrentSpecification#Messages
-        let handshake = build_handshake(&info_hash, &peer_id);
+        let handshake = Messages::handshake(&info_hash, &peer_id);
 
         // Create tcp connection
         // If the connection is refused it probably means this peer is no good
