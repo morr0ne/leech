@@ -5,7 +5,7 @@ authors = ["Federico Morrone <contact@morrone.dev>"]
 edition = "2018"
 
 [dependencies]
-anyhow = "1.0.41"
+anyhow = "1.0.42"
 bendy = "0.4.0-beta.1"
 bytes = "1.0.1"
 peers = { version = "0.1.0", path = "../peers" }
