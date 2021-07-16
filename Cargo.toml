@@ -2,10 +2,11 @@ cargo-features = ["strip"]
 
 [workspace]
 members = [
+  "bencode",
   "cli",
   "core",
-  "peers",
   "metainfo",
+  "peers",
 ]
 
 [profile.release]
