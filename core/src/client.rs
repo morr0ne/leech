@@ -12,7 +12,7 @@ use std::{
 use tokio::net::UdpSocket;
 use url::Url;
 
-use crate::utils::slice_to_array;
+use crate::utils::ToArrayUnchecked;
 
 pub type HttpClient<C = HttpsConnector<HttpConnector>> = hyper::Client<C>;
 
@@ -231,7 +231,7 @@ impl AnnounceRequest {
     }
 
     pub fn into_udp_request(&self, connection_id: u64) -> [u8; 98] {
-        let mut announce_req = BytesMut::with_capacity(98);
+        let mut announce_req = Vec::with_capacity(98);
 
         let transaction_id = random::<u32>();
         let key = random::<u32>();
@@ -250,7 +250,7 @@ impl AnnounceRequest {
         announce_req.put_i32(-1); // num_want
         announce_req.put_u16(self.port);
 
-        unsafe { slice_to_array(announce_req) }
+        unsafe { announce_req.to_array_unchecked() }
     }
 }
 
