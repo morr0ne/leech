@@ -20,7 +20,7 @@ impl<T: Copy, const N: usize> ToArrayUnchecked<T, N> for &[T] {
 /// Builds an array of N size from bytes.
 ///
 /// SAFETY: The caller must payload bytes must be exactly of lenght N
-pub unsafe fn build_array<const P: usize, const N: usize>(payload: [&[u8]; P]) -> [u8; N] {
+pub unsafe fn build_array<T: Clone, const P: usize, const N: usize>(payload: [&[T]; P]) -> [T; N] {
     let mut message = Vec::with_capacity(N);
 
     for p in payload {
