@@ -5,6 +5,7 @@ members = [
   "bencode",
   "cli",
   "core",
+  "magnet",
   "metainfo",
   "peers",
 ]

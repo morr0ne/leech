@@ -1,0 +1,10 @@
+[package]
+name = "magnet"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+anyhow = "1.0.42"
+data-encoding = "2.3.2"
+hex = "0.4.3"
+url = "2.2.2"
