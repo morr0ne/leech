@@ -1,4 +1,8 @@
 pub trait ToArrayUnchecked<T, const N: usize> {
+    /// # Safety
+    ///
+    /// The caller must ensure the lenght fits
+    // TODO: better safety doc
     unsafe fn to_array_unchecked(&mut self) -> [T; N];
 }
 
@@ -19,7 +23,9 @@ impl<T: Copy, const N: usize> ToArrayUnchecked<T, N> for &[T] {
 
 /// Builds an array of N size from bytes.
 ///
-/// SAFETY: The caller must payload bytes must be exactly of lenght N
+/// # Safety
+///
+/// The caller must payload bytes must be exactly of lenght N
 pub unsafe fn build_array<T: Clone, const P: usize, const N: usize>(payload: [&[T]; P]) -> [T; N] {
     let mut message = Vec::with_capacity(N);
 

@@ -58,7 +58,7 @@ pub async fn start(torrent: &str) -> Result<()> {
         // but for the sake of simplicity I'll connect just to one for now
 
         println!("Creating tcp stream");
-        let mut stream = TcpStream::connect(peers[25]).await?;
+        let mut stream = TcpStream::connect(peers[15]).await?;
         println!("Connected to {}", stream.peer_addr()?.to_string());
 
         let mut buffer = BytesMut::with_capacity(65508);
@@ -103,11 +103,11 @@ pub async fn start(torrent: &str) -> Result<()> {
 
         println!("{}", id);
 
-        let parsed_id = peers::STANDARD_PEERS.get(id).unwrap();
+        let parsed_id = peers::STANDARD_PEERS.get(id).unwrap_or(&"Unknown peer id");
 
         println!("{}", pstrlen);
         println!("{}", String::from_utf8_lossy(&pstr));
-        println!("{}", String::from_utf8_lossy(&peer_id));
+        println!("{}", String::from_utf8_lossy(peer_id));
         println!("{}", parsed_id);
     } else {
         // If no announce url is found it means we should lookup the DHT

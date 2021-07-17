@@ -12,7 +12,7 @@ async fn main() -> Result<()> {
     // Get path to the torrent
     let torrent = matches.value_of("torrent").unwrap();
 
-    leech_core::start(&torrent).await?;
+    leech_core::start(torrent).await?;
 
     Ok(())
 }

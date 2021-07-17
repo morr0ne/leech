@@ -91,7 +91,7 @@ impl MetaInfo {
 
     pub fn length(&self) -> u64 {
         match &self.info.files {
-            FileKind::SingleFile { length, .. } => length.clone(), // TODO: probably a better way to do this
+            FileKind::SingleFile { length, .. } => *length, // TODO: probably a better way to do this
             FileKind::MultiFile(files) => files.iter().fold(0, |index, file| index + file.length),
         }
     }
@@ -298,8 +298,8 @@ impl ToBencode for MetaInfo {
                 e.emit_pair::<Vec<String>>(
                     b"announce-list",
                     announce_list
-                        .into_iter()
-                        .map(|v| v.into_iter().map(|url| url.to_string()).collect())
+                        .iter()
+                        .map(|v| v.iter().map(|url| url.to_string()).collect())
                         .collect(),
                 )?;
             }
@@ -321,7 +321,7 @@ impl ToBencode for MetaInfo {
             if let Some(url_list) = &self.url_list {
                 e.emit_pair::<Vec<String>>(
                     b"url-list",
-                    url_list.into_iter().map(|url| url.to_string()).collect(),
+                    url_list.iter().map(|url| url.to_string()).collect(),
                 )?;
             }
             e.emit_pair(b"info", &self.info)?;
