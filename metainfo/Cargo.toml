@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-anyhow = "1.0.42"
+anyhow = "1.0.44"
 bendy = "0.4.0-beta.1"
-sha-1 = "0.9.6"
+sha-1 = "0.9.8"
 url =  "2.2.2"
