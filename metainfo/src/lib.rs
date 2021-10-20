@@ -249,7 +249,7 @@ impl FromBencode for Info {
 }
 
 impl FromBencode for File {
-    const EXPECTED_RECURSION_DEPTH: usize = 0;
+    const EXPECTED_RECURSION_DEPTH: usize = 2048;
 
     fn decode_bencode_object(object: Object) -> Result<Self, DecodingError>
     where
