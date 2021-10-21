@@ -7,10 +7,7 @@ edition = "2018"
 [dependencies]
 nom = "7.0.0"
 indexmap = "1.7.0"
-serde = { version = "1.0.130", features = ["derive"], optional = true }
+thiserror = "1.0.30"
 
 [dev-dependencies]
 anyhow = "1.0.44"
-
-[features]
-serde1 = ["serde", "indexmap/serde"]
