@@ -9,6 +9,8 @@ use url::Url;
 
 pub use bendy;
 
+pub mod tst;
+
 /// Dictionary containg information about the torrent
 #[derive(Debug)]
 pub struct MetaInfo {
