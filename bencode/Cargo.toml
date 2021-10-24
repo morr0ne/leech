@@ -11,3 +11,5 @@ thiserror = "1.0.30"
 
 [dev-dependencies]
 anyhow = "1.0.44"
+metainfo = { path = "../metainfo" }
+
