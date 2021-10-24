@@ -9,7 +9,7 @@ use url::Url;
 
 pub use bendy;
 
-pub mod tst;
+mod from_bencode;
 
 /// Dictionary containg information about the torrent
 #[derive(Debug)]
