@@ -1,4 +1,6 @@
 use atoi::atoi;
+#[cfg(feature = "indexmap")]
+use indexmap::IndexMap;
 use std::{
     collections::HashMap,
     hash::{BuildHasher, Hash},
@@ -24,6 +26,19 @@ pub trait FromBencode {
     fn bdecode(object: Object) -> Result<Self, DecodingError>
     where
         Self: Sized;
+}
+
+#[derive(Debug)]
+pub struct AsString(pub Vec<u8>);
+
+impl FromBencode for AsString {
+    fn bdecode(object: Object) -> Result<Self, DecodingError> {
+        object
+            .byte_string()
+            .map(Vec::from)
+            .map(AsString)
+            .ok_or(DecodingError::Unknown)
+    }
 }
 
 macro_rules! impl_from_bencode_for_num {
@@ -98,16 +113,27 @@ where
     }
 }
 
-/// Wrapper to allow `Vec<u8>` encoding as bencode string element.
-#[derive(Debug)]
-pub struct AsString(pub Vec<u8>);
+#[cfg(feature = "indexmap")]
+impl<K, V, H> FromBencode for IndexMap<K, V, H>
+where
+    K: FromBencode + Hash + Eq,
+    V: FromBencode,
+    H: BuildHasher + Default,
+{
+    fn bdecode(object: Object) -> Result<Self, DecodingError>
+    where
+        Self: Sized,
+    {
+        let mut dict = object.dictionary().ok_or(DecodingError::Unknown)?;
+        let mut result = IndexMap::default();
 
-impl FromBencode for AsString {
-    fn bdecode(object: Object) -> Result<Self, DecodingError> {
-        object
-            .byte_string()
-            .map(Vec::from)
-            .map(AsString)
-            .ok_or(DecodingError::Unknown)
+        while let Some((key, value)) = dict.next_pair()? {
+            let key = K::bdecode(Object::ByteString(key))?;
+            let value = V::bdecode(value)?;
+
+            result.insert(key, value);
+        }
+
+        Ok(result)
     }
 }
