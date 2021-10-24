@@ -8,12 +8,11 @@ use nom::{
     Finish, IResult,
 };
 
-use super::object::Object;
-use crate::error::{Error, Result};
+use super::{error::DecodingError, object::Object};
 
 enum Token<'a> {
     ByteString(&'a [u8]),
-    Integer(i64),
+    Integer(&'a [u8]),
     ListStart,
     DictionaryStart,
     End,
@@ -44,15 +43,12 @@ impl<'de> Decoder<'de> {
 
     fn decode_integer(bytes: &[u8]) -> IResult<&[u8], Token> {
         map(
-            map_parser(
-                delimited(char('i'), take_until("e"), char('e')),
-                nom::character::complete::i64,
-            ),
+            map_parser(delimited(char('i'), take_until("e"), char('e')), digit1),
             Token::Integer,
         )(bytes)
     }
 
-    fn next_token(&mut self) -> Result<Option<Token<'de>>> {
+    fn next_token(&mut self) -> Result<Option<Token<'de>>, DecodingError> {
         let (bytes, token) = opt(alt((
             Self::decode_byte_string,
             Self::decode_integer,
@@ -61,13 +57,13 @@ impl<'de> Decoder<'de> {
             map(char('e'), |_| Token::End),
         )))(self.bytes)
         .finish()
-        .map_err(|_| Error::Unknown)?; // TODO: Map to an actual error
+        .map_err(|_| DecodingError::Unknown)?; // TODO: Map to an actual error
 
         self.bytes = bytes;
         Ok(token)
     }
 
-    pub fn next_object<'obj>(&'obj mut self) -> Result<Option<Object<'obj, 'de>>> {
+    pub fn next_object<'obj>(&'obj mut self) -> Result<Option<Object<'obj, 'de>>, DecodingError> {
         Ok(match self.next_token()? {
             None | Some(Token::End) => None,
             Some(Token::ByteString(byte_string)) => Some(Object::ByteString(byte_string)),
@@ -83,7 +79,9 @@ impl<'obj, 'de: 'obj> ListDecoder<'obj, 'de> {
         Self(decoder)
     }
 
-    pub fn next_object<'item>(&'item mut self) -> Result<Option<Object<'item, 'de>>> {
+    pub fn next_object<'item>(
+        &'item mut self,
+    ) -> Result<Option<Object<'item, 'de>>, DecodingError> {
         let item = self.0.next_object()?;
         if item.is_none() {
             return Ok(None);
@@ -98,7 +96,9 @@ impl<'obj, 'de: 'obj> DictionaryDecoder<'obj, 'de> {
         Self(decoder)
     }
 
-    pub fn next_pair<'item>(&'item mut self) -> Result<Option<(&'de [u8], Object<'item, 'de>)>> {
+    pub fn next_pair<'item>(
+        &'item mut self,
+    ) -> Result<Option<(&'de [u8], Object<'item, 'de>)>, DecodingError> {
         Ok(if let Some(Object::ByteString(k)) = self.0.next_object()? {
             let v = self.0.next_object()?.unwrap();
             Some((k, v))

@@ -2,7 +2,7 @@ use super::decoder::{DictionaryDecoder, ListDecoder};
 
 pub enum Object<'obj, 'de: 'obj> {
     ByteString(&'de [u8]),
-    Integer(i64),
+    Integer(&'de [u8]),
     List(ListDecoder<'obj, 'de>),
     Dictionary(DictionaryDecoder<'obj, 'de>),
 }
@@ -15,7 +15,7 @@ impl<'obj, 'de: 'obj> Object<'obj, 'de> {
         }
     }
 
-    pub const fn integer(self) -> Option<i64> {
+    pub const fn integer(self) -> Option<&'de [u8]> {
         match self {
             Object::Integer(integer) => Some(integer),
             _ => None,
