@@ -5,6 +5,7 @@ authors = ["Federico Morrone <contact@morrone.dev>"]
 edition = "2021"
 
 [dependencies]
+atoi = "0.4.0"
 nom = "7.0.0"
 indexmap = "1.7.0"
 thiserror = "1.0.30"
