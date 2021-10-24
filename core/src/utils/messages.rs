@@ -24,6 +24,7 @@ impl Messages {
             ])
         }
     }
+
     pub fn have(piece_index: u32) -> [u8; 9] {
         unsafe {
             build_array([
@@ -56,6 +57,7 @@ impl Messages {
             ])
         }
     }
+
     pub fn cancel(index: u32, begin: u32, length: u32) -> [u8; 17] {
         unsafe {
             build_array([
