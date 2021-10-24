@@ -8,6 +8,7 @@ members = [
   "magnet",
   "metainfo",
   "peers",
+  "tracker",
 ]
 
 [profile.release]
