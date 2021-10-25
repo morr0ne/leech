@@ -1,15 +1,14 @@
 use anyhow::Result;
-use bendy::{
-    decoding::{Error as DecodingError, FromBencode, Object, ResultExt},
-    encoding::{AsString, Error as EncodingError, SingleItemEncoder, ToBencode},
+use bencode::{
+    decode::{DecodingError, FromBencode, Object},
+    encode::{Encoder, ToBencode},
+    AsString,
 };
 use sha1::{digest::FixedOutput, Digest, Sha1};
 use std::convert::TryInto;
 use url::Url;
 
-pub use bendy;
-
-mod from_bencode;
+pub use bencode;
 
 /// Dictionary containg information about the torrent
 #[derive(Debug)]
@@ -98,11 +97,8 @@ impl MetaInfo {
         }
     }
 }
-
 impl FromBencode for MetaInfo {
-    const EXPECTED_RECURSION_DEPTH: usize = 2048;
-
-    fn decode_bencode_object(object: Object) -> Result<Self, DecodingError>
+    fn decode(object: Object) -> Result<Self, DecodingError>
     where
         Self: Sized,
     {
@@ -116,19 +112,17 @@ impl FromBencode for MetaInfo {
         let mut info = None;
         let mut url_list = None;
 
-        let mut dict_dec = object.try_into_dictionary()?;
+        let mut dict_dec = object.dictionary().unwrap();
         while let Some((key, value)) = dict_dec.next_pair()? {
             match key {
                 b"announce" => {
                     announce = Some(
-                        Url::parse(&String::decode_bencode_object(value).context("announce")?)
-                            .expect("Invalid announce url"), // TODO: better error handling
+                        Url::parse(&String::decode(value)?).expect("Invalid announce url"), // TODO: better error handling
                     )
                 }
                 b"announce-list" => {
                     announce_list = Some(
-                        Vec::<Vec<String>>::decode_bencode_object(value)
-                            .context("announce-list")?
+                        Vec::<Vec<String>>::decode(value)?
                             .into_iter()
                             .map(|v| {
                                 v.into_iter()
@@ -138,42 +132,30 @@ impl FromBencode for MetaInfo {
                             .collect(),
                     )
                 }
-                b"comment" => {
-                    comment = Some(String::decode_bencode_object(value).context("comment")?)
-                }
-                b"created by" => {
-                    created_by = Some(String::decode_bencode_object(value).context("created by")?)
-                }
-                b"creation date" => {
-                    creation_date =
-                        Some(u64::decode_bencode_object(value).context("creation date")?)
-                }
-                b"encoding" => {
-                    encoding = Some(String::decode_bencode_object(value).context("encoding")?)
-                }
-                b"httpseeds" => {
-                    http_seeds = Some(Vec::decode_bencode_object(value).context("httpseeds")?)
-                }
-                b"info" => info = Some(Info::decode_bencode_object(value).context("info")?),
+                b"comment" => comment = Some(String::decode(value)?),
+                b"created by" => created_by = Some(String::decode(value)?),
+                b"creation date" => creation_date = Some(u64::decode(value)?),
+                b"encoding" => encoding = Some(String::decode(value)?),
+                b"httpseeds" => http_seeds = Some(Vec::decode(value)?),
+                b"info" => info = Some(Info::decode(value)?),
                 b"url-list" => {
                     url_list = Some(
-                        Vec::<String>::decode_bencode_object(value)
-                            .context("url-list")?
+                        Vec::<String>::decode(value)?
                             .into_iter()
                             .map(|url| Url::parse(&url).expect("Invalid url-list")) // TODO: better error handling
                             .collect(),
                     )
                 }
                 unknown_field => {
-                    return Err(DecodingError::unexpected_field(String::from_utf8_lossy(
-                        unknown_field,
-                    )))
-                    .context("Metainfo");
+                    return Err(DecodingError::UnexpectedField {
+                        field: String::from_utf8_lossy(unknown_field).to_string(),
+                    });
                 }
             }
         }
 
-        let info = info.ok_or_else(|| DecodingError::missing_field("info"))?;
+        // let info = info.ok_or_else(|| DecodingError::Unknown)?;
+        let info = info.unwrap();
 
         Ok(MetaInfo {
             announce,
@@ -190,9 +172,7 @@ impl FromBencode for MetaInfo {
 }
 
 impl FromBencode for Info {
-    const EXPECTED_RECURSION_DEPTH: usize = 2048;
-
-    fn decode_bencode_object(object: Object) -> Result<Self, DecodingError>
+    fn decode(object: Object) -> Result<Self, DecodingError>
     where
         Self: Sized,
     {
@@ -205,34 +185,30 @@ impl FromBencode for Info {
         let mut private = None;
         let mut source = None;
 
-        let mut dict_dec = object.try_into_dictionary()?;
+        let mut dict_dec = object.dictionary().unwrap();
         while let Some((key, value)) = dict_dec.next_pair()? {
             match key {
-                b"files" => files = Some(Vec::<File>::decode_bencode_object(value)?),
-                b"length" => length = Some(u64::decode_bencode_object(value)?),
-                b"md5sum" => md5sum = Some(String::decode_bencode_object(value)?),
-                b"name" => name = Some(String::decode_bencode_object(value)?),
-                b"piece length" => piece_length = Some(u64::decode_bencode_object(value)?),
+                b"files" => files = Some(Vec::<File>::decode(value)?),
+                b"length" => length = Some(u64::decode(value)?),
+                b"md5sum" => md5sum = Some(String::decode(value)?),
+                b"name" => name = Some(String::decode(value)?),
+                b"piece length" => piece_length = Some(u64::decode(value)?),
                 b"pieces" => {
-                    pieces = AsString::decode_bencode_object(value)
-                        .context("pieces")
-                        .map(|bytes| Some(bytes.0))?;
+                    pieces = AsString::decode(value).map(|bytes| Some(bytes.0))?;
                 }
-                b"private" => private = Some(u8::decode_bencode_object(value)?),
-                b"source" => source = Some(String::decode_bencode_object(value)?),
+                b"private" => private = Some(u8::decode(value)?),
+                b"source" => source = Some(String::decode(value)?),
                 unknown_field => {
-                    return Err(DecodingError::unexpected_field(String::from_utf8_lossy(
-                        unknown_field,
-                    )))
-                    .context("Info");
+                    return Err(DecodingError::UnexpectedField {
+                        field: String::from_utf8_lossy(unknown_field).to_string(),
+                    });
                 }
             }
         }
 
-        let name = name.ok_or_else(|| DecodingError::missing_field("name"))?;
-        let piece_length =
-            piece_length.ok_or_else(|| DecodingError::missing_field("piece_length"))?;
-        let pieces = pieces.ok_or_else(|| DecodingError::missing_field("pieces"))?;
+        let name = name.ok_or(DecodingError::Unknown)?;
+        let piece_length = piece_length.ok_or(DecodingError::Unknown)?;
+        let pieces = pieces.ok_or(DecodingError::Unknown)?;
 
         Ok(Info {
             name,
@@ -243,7 +219,7 @@ impl FromBencode for Info {
             files: if let Some(files) = files {
                 FileKind::MultiFile(files)
             } else {
-                let length = length.ok_or_else(|| DecodingError::missing_field("length"))?;
+                let length = length.ok_or(DecodingError::Unknown)?;
                 FileKind::SingleFile { length, md5sum }
             },
         })
@@ -251,9 +227,7 @@ impl FromBencode for Info {
 }
 
 impl FromBencode for File {
-    const EXPECTED_RECURSION_DEPTH: usize = 2048;
-
-    fn decode_bencode_object(object: Object) -> Result<Self, DecodingError>
+    fn decode(object: Object) -> Result<Self, DecodingError>
     where
         Self: Sized,
     {
@@ -261,24 +235,22 @@ impl FromBencode for File {
         let mut md5sum = None;
         let mut path = None;
 
-        let mut dict_dec = object.try_into_dictionary()?;
+        let mut dict_dec = object.dictionary().unwrap();
         while let Some((key, value)) = dict_dec.next_pair()? {
             match key {
-                b"length" => length = Some(u64::decode_bencode_object(value).context("length")?),
-                b"md5sum" => md5sum = Some(String::decode_bencode_object(value).context("md5sum")?),
-                b"path" => {
-                    path = Some(Vec::<String>::decode_bencode_object(value).context("path")?)
-                }
+                b"length" => length = Some(u64::decode(value)?),
+                b"md5sum" => md5sum = Some(String::decode(value)?),
+                b"path" => path = Some(Vec::<String>::decode(value)?),
                 unknown_field => {
-                    return Err(DecodingError::unexpected_field(String::from_utf8_lossy(
-                        unknown_field,
-                    )));
+                    return Err(DecodingError::UnexpectedField {
+                        field: String::from_utf8_lossy(unknown_field).to_string(),
+                    });
                 }
             }
         }
 
-        let length = length.ok_or_else(|| DecodingError::missing_field("length"))?;
-        let path = path.ok_or_else(|| DecodingError::missing_field("path"))?;
+        let length = length.ok_or(DecodingError::Unknown)?;
+        let path = path.ok_or(DecodingError::Unknown)?;
 
         Ok(File {
             length,
@@ -289,12 +261,10 @@ impl FromBencode for File {
 }
 
 impl ToBencode for MetaInfo {
-    const MAX_DEPTH: usize = Info::MAX_DEPTH + 1;
-
-    fn encode(&self, encoder: SingleItemEncoder) -> Result<(), EncodingError> {
-        encoder.emit_dict(|mut e| {
+    fn encode(&self, encoder: &mut Encoder) {
+        encoder.emit_dictionary(|mut e| {
             if let Some(announce) = &self.announce {
-                e.emit_pair(b"announce", announce.to_string())?;
+                e.emit_pair(b"announce", announce.to_string());
             }
             if let Some(announce_list) = &self.announce_list {
                 e.emit_pair::<Vec<String>>(
@@ -303,80 +273,68 @@ impl ToBencode for MetaInfo {
                         .iter()
                         .map(|v| v.iter().map(|url| url.to_string()).collect())
                         .collect(),
-                )?;
+                );
             }
             if let Some(comment) = &self.comment {
-                e.emit_pair(b"comment", comment)?;
+                e.emit_pair(b"comment", comment);
             }
             if let Some(created_by) = &self.created_by {
-                e.emit_pair(b"created by", created_by)?;
+                e.emit_pair(b"created by", created_by);
             }
             if let Some(creation_date) = &self.creation_date {
-                e.emit_pair(b"creation date", creation_date)?;
+                e.emit_pair(b"creation date", creation_date);
             }
             if let Some(encoding) = &self.encoding {
-                e.emit_pair(b"encoding", encoding)?;
+                e.emit_pair(b"encoding", encoding);
             }
             if let Some(seeds) = &self.http_seeds {
-                e.emit_pair(b"httpseeds", seeds)?;
+                e.emit_pair(b"httpseeds", seeds);
             }
             if let Some(url_list) = &self.url_list {
                 e.emit_pair::<Vec<String>>(
                     b"url-list",
                     url_list.iter().map(|url| url.to_string()).collect(),
-                )?;
+                );
             }
-            e.emit_pair(b"info", &self.info)?;
-            Ok(())
-        })?;
-        Ok(())
+            e.emit_pair(b"info", &self.info);
+        });
     }
 }
 
 impl ToBencode for Info {
-    const MAX_DEPTH: usize = 1;
-
-    fn encode(&self, encoder: SingleItemEncoder) -> Result<(), EncodingError> {
-        encoder.emit_dict(|mut e| {
+    fn encode(&self, encoder: &mut Encoder) {
+        encoder.emit_dictionary(|mut e| {
             match &self.files {
-                FileKind::MultiFile(files) => e.emit_pair(b"files", files)?,
+                FileKind::MultiFile(files) => e.emit_pair(b"files", files),
                 FileKind::SingleFile { length, md5sum } => {
-                    e.emit_pair(b"length", length)?;
+                    e.emit_pair(b"length", length);
                     if let Some(sum) = md5sum {
-                        e.emit_pair(b"md5sum", sum)?;
+                        e.emit_pair(b"md5sum", sum);
                     }
                 }
             }
 
-            e.emit_pair(b"name", &self.name)?;
-            e.emit_pair(b"piece length", self.piece_length)?;
-            e.emit_pair(b"pieces", AsString(&self.pieces))?;
+            e.emit_pair(b"name", &self.name);
+            e.emit_pair(b"piece length", self.piece_length);
+            e.emit_pair(b"pieces", AsString(&self.pieces));
             if let Some(private) = self.private {
-                e.emit_pair(b"private", private)?;
+                e.emit_pair(b"private", private);
             }
             if let Some(source) = &self.source {
-                e.emit_pair(b"source", source)?;
+                e.emit_pair(b"source", source);
             }
-
-            Ok(())
-        })?;
-
-        Ok(())
+        });
     }
 }
 
 impl ToBencode for File {
-    const MAX_DEPTH: usize = 1;
-
-    fn encode(&self, encoder: SingleItemEncoder) -> Result<(), EncodingError> {
-        encoder.emit_dict(|mut e| {
-            e.emit_pair(b"length", &self.length)?;
+    fn encode(&self, encoder: &mut Encoder) {
+        encoder.emit_dictionary(|mut e| {
+            e.emit_pair(b"length", &self.length);
             if let Some(sum) = &self.md5sum {
-                e.emit_pair(b"md5sum", sum)?;
+                e.emit_pair(b"md5sum", sum);
             }
-            e.emit_pair(b"path", &self.path)?;
-            Ok(())
-        })?;
-        Ok(())
+            e.emit_pair(b"path", &self.path);
+        });
     }
 }

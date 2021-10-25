@@ -6,6 +6,8 @@ use std::{
     hash::{BuildHasher, Hash},
 };
 
+use crate::AsString;
+
 use super::{decoder::Decoder, error::DecodingError, object::Object};
 
 pub trait FromBencode {
@@ -19,20 +21,17 @@ pub trait FromBencode {
         object.map_or(
             // Err(Error::from(StructureError::UnexpectedEof)),
             Err(DecodingError::Unknown),
-            Self::bdecode,
+            Self::decode,
         )
     }
 
-    fn bdecode(object: Object) -> Result<Self, DecodingError>
+    fn decode(object: Object) -> Result<Self, DecodingError>
     where
         Self: Sized;
 }
 
-#[derive(Debug)]
-pub struct AsString(pub Vec<u8>);
-
-impl FromBencode for AsString {
-    fn bdecode(object: Object) -> Result<Self, DecodingError> {
+impl FromBencode for AsString<Vec<u8>> {
+    fn decode(object: Object) -> Result<Self, DecodingError> {
         object
             .byte_string()
             .map(Vec::from)
@@ -45,7 +44,7 @@ macro_rules! impl_from_bencode_for_num {
     ($($type:ty)*) => {$(
         impl FromBencode for $type {
 
-            fn bdecode(object: Object) -> Result<Self, DecodingError>
+            fn decode(object: Object) -> Result<Self, DecodingError>
             where
                 Self: Sized,
             {
@@ -61,7 +60,7 @@ macro_rules! impl_from_bencode_for_num {
 impl_from_bencode_for_num!(u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize);
 
 impl<T: FromBencode> FromBencode for Vec<T> {
-    fn bdecode(object: Object) -> Result<Self, DecodingError>
+    fn decode(object: Object) -> Result<Self, DecodingError>
     where
         Self: Sized,
     {
@@ -69,7 +68,7 @@ impl<T: FromBencode> FromBencode for Vec<T> {
         let mut results = Vec::new();
 
         while let Some(object) = list.next_object()? {
-            let item = T::bdecode(object)?;
+            let item = T::decode(object)?;
             results.push(item);
         }
 
@@ -78,7 +77,7 @@ impl<T: FromBencode> FromBencode for Vec<T> {
 }
 
 impl FromBencode for String {
-    fn bdecode(object: Object) -> Result<Self, DecodingError>
+    fn decode(object: Object) -> Result<Self, DecodingError>
     where
         Self: Sized,
     {
@@ -95,7 +94,7 @@ where
     V: FromBencode,
     H: BuildHasher + Default,
 {
-    fn bdecode(object: Object) -> Result<Self, DecodingError>
+    fn decode(object: Object) -> Result<Self, DecodingError>
     where
         Self: Sized,
     {
@@ -103,8 +102,8 @@ where
         let mut result = HashMap::default();
 
         while let Some((key, value)) = dict.next_pair()? {
-            let key = K::bdecode(Object::ByteString(key))?;
-            let value = V::bdecode(value)?;
+            let key = K::decode(Object::ByteString(key))?;
+            let value = V::decode(value)?;
 
             result.insert(key, value);
         }
@@ -120,7 +119,7 @@ where
     V: FromBencode,
     H: BuildHasher + Default,
 {
-    fn bdecode(object: Object) -> Result<Self, DecodingError>
+    fn decode(object: Object) -> Result<Self, DecodingError>
     where
         Self: Sized,
     {
@@ -128,8 +127,8 @@ where
         let mut result = IndexMap::default();
 
         while let Some((key, value)) = dict.next_pair()? {
-            let key = K::bdecode(Object::ByteString(key))?;
-            let value = V::bdecode(value)?;
+            let key = K::decode(Object::ByteString(key))?;
+            let value = V::decode(value)?;
 
             result.insert(key, value);
         }

@@ -6,6 +6,5 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.44"
 bencode = { path = "../bencode" }
-bendy = "0.4.0-beta.1"
 sha-1 = "0.9.8"
 url =  "2.2.2"

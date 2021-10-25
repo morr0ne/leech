@@ -5,5 +5,5 @@ mod object;
 
 pub use decoder::{Decoder, DictionaryDecoder, ListDecoder};
 pub use error::DecodingError;
-pub use from_bencode::{AsString, FromBencode};
+pub use from_bencode::FromBencode;
 pub use object::Object;

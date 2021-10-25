@@ -4,7 +4,7 @@
 
 use anyhow::Result;
 use bytes::{Buf, BytesMut};
-use metainfo::{bendy::decoding::FromBencode, MetaInfo};
+use metainfo::{bencode::decode::FromBencode, MetaInfo};
 use tokio::{
     fs,
     io::{AsyncReadExt, AsyncWriteExt},
@@ -44,6 +44,8 @@ pub async fn start(torrent: &str) -> Result<()> {
             downloaded: 0,
             left,
         };
+
+        println!("Built announce request");
 
         let peers = client.announce(announce, &announce_request).await?;
 

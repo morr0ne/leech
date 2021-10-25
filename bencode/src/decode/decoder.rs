@@ -8,15 +8,11 @@ use nom::{
     Finish, IResult,
 };
 
+use crate::token::Token;
+
 use super::{error::DecodingError, object::Object};
 
-enum Token<'a> {
-    ByteString(&'a [u8]),
-    Integer(&'a [u8]),
-    ListStart,
-    DictionaryStart,
-    End,
-}
+
 
 pub struct Decoder<'a> {
     bytes: &'a [u8],

@@ -20,6 +20,7 @@ pub enum Actions {
     Connect = 0,
     Announce = 1,
     Scrape = 2,
+    Error = 3,
 }
 
 impl TryFrom<u32> for Actions {
@@ -27,10 +28,11 @@ impl TryFrom<u32> for Actions {
 
     fn try_from(value: u32) -> Result<Self> {
         match value {
-            x if x == Actions::Connect as u32 => Ok(Actions::Connect),
-            x if x == Actions::Announce as u32 => Ok(Actions::Announce),
-            x if x == Actions::Scrape as u32 => Ok(Actions::Scrape),
-            _ => bail!("Unknown action"),
+            0 => Ok(Actions::Connect),
+            1 => Ok(Actions::Announce),
+            2 => Ok(Actions::Scrape),
+            3 => Ok(Actions::Error),
+            x => bail!("Unknown action {}", x),
         }
     }
 }
@@ -85,6 +87,8 @@ impl Client {
         // Build the tracker url using ip and port
         let url = format!("{}:{}", url.host_str().unwrap(), url.port().unwrap());
 
+        println!("Connecting to {}", &url);
+
         self.socket.connect(url).await?;
 
         const PROTOCOL_ID: u64 = 0x41727101980;
@@ -104,7 +108,13 @@ impl Client {
         self.socket.recv(&mut connect_res).await?;
 
         let action = Actions::try_from(connect_res.get_u32())?;
+
         let transaction_id = connect_res.get_u32();
+
+        if let Actions::Error = action {
+            bail!("{}", String::from_utf8_lossy(&connect_res))
+        }
+
         let connection_id = connect_res.get_u64();
 
         Ok(ConnectResponse {
@@ -130,6 +140,10 @@ impl Client {
 
         let action = Actions::try_from(announce_res.get_u32())?;
         let transaction_id = announce_res.get_u32();
+        if let Actions::Error = action {
+            bail!("{}", String::from_utf8_lossy(&announce_res))
+        }
+
         let interval = announce_res.get_u32();
         let leechers = announce_res.get_u32();
         let seeders = announce_res.get_u32();
