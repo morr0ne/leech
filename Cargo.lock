@@ -57,7 +57,7 @@ dependencies = [
 [[package]]
 name = "bento"
 version = "0.1.0"
-source = "git+https://github.com/morr0ne/bento#9b0216c47db1d75febba27528d3bbe00d5857694"
+source = "git+https://github.com/morr0ne/bento#4aa15c22a168e8e792b430a85758ea084756a950"
 dependencies = [
  "anyhow",
  "atoi",
