@@ -16,6 +16,7 @@ An experimental torrent client/library written in rust.
 - [ ] 6 - [Fast Extension](https://www.bittorrent.org/beps/bep_0006.html)
 - [x] 7 - [IPv6 Tracker Extension](https://www.bittorrent.org/beps/bep_0007.html)
 - [ ] 9 - [Extension for Peers to Send Metadata Files ](https://www.bittorrent.org/beps/bep_0009.html)
+    - [ ] Magnet uri parsing
 - [ ] 10 - [Extension Protocol](https://www.bittorrent.org/beps/bep_0010.html)
 - [ ] 11 - [Peer Exchange (PEX)](https://www.bittorrent.org/beps/bep_00011.html)
 - [ ] 12 - [Multitracker Metadata Extension](https://www.bittorrent.org/beps/bep_0012.html)
