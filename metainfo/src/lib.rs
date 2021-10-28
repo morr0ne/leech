@@ -162,7 +162,7 @@ impl FromBencode for Info {
         let mut private = None;
         let mut source = None;
 
-        let mut dict_dec = object.dictionary().unwrap();
+        let mut dict_dec = object.try_dictionary()?;
         while let Some((key, value)) = dict_dec.next_pair()? {
             match key {
                 b"files" => files = Some(Vec::<File>::decode(value)?),
@@ -212,7 +212,7 @@ impl FromBencode for File {
         let mut md5sum = None;
         let mut path = None;
 
-        let mut dict_dec = object.dictionary().unwrap();
+        let mut dict_dec = object.try_dictionary()?;
         while let Some((key, value)) = dict_dec.next_pair()? {
             match key {
                 b"length" => length = Some(u64::decode(value)?),
