@@ -1,5 +1,5 @@
 use anyhow::Result;
-use bencode::{
+use bento::{
     decode::{DecodingError, FromBencode, Object},
     encode::{Encoder, ToBencode},
     AsString,
@@ -8,7 +8,7 @@ use sha1::{digest::FixedOutput, Digest, Sha1};
 use std::convert::TryInto;
 use url::Url;
 
-pub use bencode;
+pub use bento;
 
 /// Dictionary containg information about the torrent
 #[derive(Debug)]
@@ -112,40 +112,18 @@ impl FromBencode for MetaInfo {
         let mut info = None;
         let mut url_list = None;
 
-        let mut dict_dec = object.dictionary().unwrap();
+        let mut dict_dec = object.try_dictionary()?;
         while let Some((key, value)) = dict_dec.next_pair()? {
             match key {
-                b"announce" => {
-                    announce = Some(
-                        Url::parse(&String::decode(value)?).expect("Invalid announce url"), // TODO: better error handling
-                    )
-                }
-                b"announce-list" => {
-                    announce_list = Some(
-                        Vec::<Vec<String>>::decode(value)?
-                            .into_iter()
-                            .map(|v| {
-                                v.into_iter()
-                                    .map(|url| Url::parse(&url).expect("Invalid announce url")) // TODO: better error handling
-                                    .collect()
-                            })
-                            .collect(),
-                    )
-                }
+                b"announce" => announce = Some(Url::decode(value)?),
+                b"announce-list" => announce_list = Some(Vec::decode(value)?),
                 b"comment" => comment = Some(String::decode(value)?),
                 b"created by" => created_by = Some(String::decode(value)?),
                 b"creation date" => creation_date = Some(u64::decode(value)?),
                 b"encoding" => encoding = Some(String::decode(value)?),
                 b"httpseeds" => http_seeds = Some(Vec::decode(value)?),
                 b"info" => info = Some(Info::decode(value)?),
-                b"url-list" => {
-                    url_list = Some(
-                        Vec::<String>::decode(value)?
-                            .into_iter()
-                            .map(|url| Url::parse(&url).expect("Invalid url-list")) // TODO: better error handling
-                            .collect(),
-                    )
-                }
+                b"url-list" => url_list = Some(Vec::decode(value)?),
                 unknown_field => {
                     return Err(DecodingError::UnexpectedField {
                         field: String::from_utf8_lossy(unknown_field).to_string(),
@@ -154,8 +132,7 @@ impl FromBencode for MetaInfo {
             }
         }
 
-        // let info = info.ok_or_else(|| DecodingError::Unknown)?;
-        let info = info.unwrap();
+        let info = info.ok_or(DecodingError::Unknown)?;
 
         Ok(MetaInfo {
             announce,
@@ -267,13 +244,7 @@ impl ToBencode for MetaInfo {
                 e.emit_pair(b"announce", announce.to_string());
             }
             if let Some(announce_list) = &self.announce_list {
-                e.emit_pair::<Vec<String>>(
-                    b"announce-list",
-                    announce_list
-                        .iter()
-                        .map(|v| v.iter().map(|url| url.to_string()).collect())
-                        .collect(),
-                );
+                e.emit_pair(b"announce-list", announce_list);
             }
             if let Some(comment) = &self.comment {
                 e.emit_pair(b"comment", comment);
@@ -291,10 +262,7 @@ impl ToBencode for MetaInfo {
                 e.emit_pair(b"httpseeds", seeds);
             }
             if let Some(url_list) = &self.url_list {
-                e.emit_pair::<Vec<String>>(
-                    b"url-list",
-                    url_list.iter().map(|url| url.to_string()).collect(),
-                );
+                e.emit_pair(b"url-list", url_list);
             }
             e.emit_pair(b"info", &self.info);
         });

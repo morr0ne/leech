@@ -6,6 +6,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.44"
+array_utils = { path = "../array_utils" }
 bendy = "0.4.0-beta.1"
 bytes = "1.1.0"
 peers = { path = "../peers" }

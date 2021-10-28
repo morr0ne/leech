@@ -5,6 +5,6 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.44"
-bencode = { path = "../bencode" }
+bento = { git = "https://github.com/morr0ne/bento", features = ["indexmap", "url"] }
 sha-1 = "0.9.8"
 url =  "2.2.2"

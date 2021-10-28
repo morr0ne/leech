@@ -4,7 +4,7 @@
 
 use anyhow::Result;
 use bytes::{Buf, BytesMut};
-use metainfo::{bencode::decode::FromBencode, MetaInfo};
+use metainfo::{bento::decode::FromBencode, MetaInfo};
 use tokio::{
     fs,
     io::{AsyncReadExt, AsyncWriteExt},

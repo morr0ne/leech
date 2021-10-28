@@ -12,7 +12,7 @@ use std::{
 use tokio::net::UdpSocket;
 use url::Url;
 
-use crate::utils::ToArrayUnchecked;
+use array_utils::ToArrayUnchecked;
 
 pub type HttpClient<C = HttpsConnector<HttpConnector>> = hyper::Client<C>;
 

@@ -1,4 +1,4 @@
-use super::build_array;
+use array_utils::build_array;
 
 pub struct Messages;
 
