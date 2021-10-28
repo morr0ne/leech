@@ -132,8 +132,6 @@ impl FromBencode for MetaInfo {
             }
         }
 
-        let info = info.ok_or(DecodingError::Unknown)?;
-
         Ok(MetaInfo {
             announce,
             announce_list,
@@ -142,7 +140,7 @@ impl FromBencode for MetaInfo {
             creation_date,
             encoding,
             http_seeds,
-            info,
+            info: info.ok_or(DecodingError::Unknown)?,
             url_list,
         })
     }
@@ -183,14 +181,10 @@ impl FromBencode for Info {
             }
         }
 
-        let name = name.ok_or(DecodingError::Unknown)?;
-        let piece_length = piece_length.ok_or(DecodingError::Unknown)?;
-        let pieces = pieces.ok_or(DecodingError::Unknown)?;
-
         Ok(Info {
-            name,
-            piece_length,
-            pieces,
+            name: name.ok_or(DecodingError::Unknown)?,
+            piece_length: piece_length.ok_or(DecodingError::Unknown)?,
+            pieces: pieces.ok_or(DecodingError::Unknown)?,
             private,
             source,
             files: if let Some(files) = files {
@@ -226,13 +220,10 @@ impl FromBencode for File {
             }
         }
 
-        let length = length.ok_or(DecodingError::Unknown)?;
-        let path = path.ok_or(DecodingError::Unknown)?;
-
         Ok(File {
-            length,
+            length: length.ok_or(DecodingError::Unknown)?,
             md5sum,
-            path,
+            path: path.ok_or(DecodingError::Unknown)?,
         })
     }
 }
