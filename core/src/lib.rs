@@ -15,9 +15,8 @@ pub mod client;
 pub mod utils;
 
 pub use client::Client;
+use tracker::tracker::http::AnnounceRequest;
 pub use utils::{messages::Messages, peer_id};
-
-use client::AnnounceRequest;
 
 pub async fn start(torrent: &str) -> Result<()> {
     let peer_id = peer_id(b"-LE0001-");
@@ -43,11 +42,17 @@ pub async fn start(torrent: &str) -> Result<()> {
             uploaded: 0,
             downloaded: 0,
             left,
+            event: None,
+            compact: true,
         };
 
         println!("Built announce request");
 
-        let peers = client.announce(announce, &announce_request).await?;
+        let announce_response = client
+            .announce(announce.as_str(), &announce_request)
+            .await?;
+
+        let peers = announce_response.peers;
 
         println!("Found {} peers", peers.len());
 
