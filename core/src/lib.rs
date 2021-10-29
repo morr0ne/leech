@@ -44,6 +44,7 @@ pub async fn start(torrent: &str) -> Result<()> {
             left,
             event: None,
             compact: true,
+            numwant: None,
         };
 
         println!("Built announce request");

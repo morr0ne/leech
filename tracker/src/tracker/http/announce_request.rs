@@ -29,6 +29,7 @@ pub struct AnnounceRequest {
     /// Downloaders send an announcement using stopped when they cease downloading.
     pub event: Option<Event>,
     pub compact: bool,
+    pub numwant: Option<u16>,
 }
 
 #[derive(Debug)]
@@ -51,15 +52,19 @@ impl AnnounceRequest {
 
         // After converting parsing the url we insert all the query parameters and convert it back to a string
         // The url standard only support utf-8 strings, we need to do this so we can manually add the info hash and peer id later
-        let mut url = url
-            .query_pairs_mut()
+        let mut url_query = url.query_pairs_mut();
+        url_query
             .append_pair("port", &self.port.to_string())
             .append_pair("uploaded", &self.uploaded.to_string())
             .append_pair("downloaded", &self.downloaded.to_string())
             .append_pair("left", &self.left.to_string())
-            .append_pair("compact", &(self.compact as u8).to_string())
-            .finish()
-            .to_string();
+            .append_pair("compact", &(self.compact as u8).to_string());
+
+        if let Some(numwant) = self.numwant {
+            url_query.append_pair("numwant", &numwant.to_string());
+        }
+
+        let mut url = url_query.finish().to_string();
 
         // Manually add info hash and peer id
         url.push_str(&format!(
