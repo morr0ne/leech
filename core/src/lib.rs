@@ -56,7 +56,6 @@ pub async fn start(torrent: &str) -> Result<()> {
 
         println!("Found {} peers", peers.len());
 
-        // All the possible messages, see https://wiki.theory.org/BitTorrentSpecification#Messages
         let handshake = Messages::handshake(&info_hash, &peer_id);
 
         // Create tcp connection
