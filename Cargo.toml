@@ -5,6 +5,7 @@ members = [
   "array_utils",
   "cli",
   "core",
+  "dht",
   "magnet",
   "metainfo",
   "peers",
