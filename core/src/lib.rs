@@ -81,7 +81,7 @@ pub async fn start(torrent: &str) -> Result<()> {
 
         println!("Received {} bytes", n);
 
-        let handshake = Handshake::from_bytes(&buffer)?;
+        let handshake = Handshake::from_bytes(buffer)?;
 
         if handshake.info_hash == info_hash {
             println!("Info hash matches")

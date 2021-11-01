@@ -12,7 +12,8 @@ pub struct Handshake {
 
 impl Handshake {
     // TODO: proper error handling
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
+    pub fn from_bytes<T: AsRef<[u8]>>(bytes: T) -> Result<Self> {
+        let bytes = bytes.as_ref();
         if bytes.len() < 68 {
             bail!("Handshake too short")
         } else {
