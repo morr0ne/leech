@@ -13,14 +13,14 @@ use tokio::{
 };
 
 pub mod client;
-pub mod messages;
+pub mod message;
 pub mod utils;
 
 pub use client::Client;
 use tracker::tracker::http::AnnounceRequest;
 pub use utils::{messages::Messages, peer_id};
 
-use crate::messages::Handshake;
+use crate::message::Handshake;
 
 pub async fn start(torrent: &str) -> Result<()> {
     let peer_id = peer_id(b"-LE0001-");
