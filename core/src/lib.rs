@@ -1,6 +1,8 @@
 #![deny(future_incompatible)]
 #![deny(nonstandard_style)]
 #![deny(rust_2018_idioms)]
+#![feature(option_result_unwrap_unchecked)]
+#![feature(generic_const_exprs)]
 
 use anyhow::{bail, Result};
 use bytes::BytesMut;
@@ -16,9 +18,8 @@ pub mod client;
 pub mod message;
 
 pub use client::Client;
+pub use message::{Handshake, Message};
 use tracker::tracker::http::AnnounceRequest;
-
-use crate::message::Handshake;
 
 pub async fn start(torrent: &str) -> Result<()> {
     let peer_id = peers::peer_id(b"-LE0001-");
