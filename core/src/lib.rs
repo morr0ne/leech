@@ -14,16 +14,14 @@ use tokio::{
 
 pub mod client;
 pub mod message;
-pub mod utils;
 
 pub use client::Client;
 use tracker::tracker::http::AnnounceRequest;
-pub use utils::{messages::Messages, peer_id};
 
 use crate::message::Handshake;
 
 pub async fn start(torrent: &str) -> Result<()> {
-    let peer_id = peer_id(b"-LE0001-");
+    let peer_id = peers::peer_id(b"-LE0001-");
     println!("Peer id: {:?}", String::from_utf8_lossy(&peer_id[..]));
 
     let client = Client::new().await?;
@@ -61,7 +59,12 @@ pub async fn start(torrent: &str) -> Result<()> {
 
         println!("Found {} peers", peers.len());
 
-        let handshake = Messages::handshake(&info_hash, &peer_id);
+        let handshake = Handshake {
+            reserved_bytes: [0u8; 8],
+            info_hash,
+            peer_id,
+        }
+        .into_bytes();
 
         // Create tcp connection
         // If the connection is refused it probably means this peer is no good

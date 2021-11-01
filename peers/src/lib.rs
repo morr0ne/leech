@@ -74,3 +74,8 @@ pub static SHAD0W_PEERS: phf::Map<&'static str, &'static str> = phf::phf_map! {
     "T" => "BitTornado",
     "U" => "UPnP NAT Bit Torrent",
 };
+
+/// Helper function to create a valid peer id
+pub fn peer_id(name: &[u8; 8]) -> [u8; 20] {
+    unsafe { array_utils::build_array([name, &rand::random::<[u8; 12]>()]) }
+}
