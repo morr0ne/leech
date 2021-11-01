@@ -3,7 +3,13 @@ use bento::{
     decode::{DecodingError, FromBencode, Object},
     AsString,
 };
-use nom::{combinator::map, multi::many0, number::Endianness, sequence::tuple, Finish, IResult};
+use nom::{
+    combinator::map,
+    multi::many0,
+    number::complete::{be_u128, be_u16, be_u32},
+    sequence::tuple,
+    Finish, IResult,
+};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 
 #[derive(Debug)]
@@ -29,13 +35,8 @@ fn parse_peers(value: Object) -> Result<Vec<SocketAddr>> {
 }
 
 fn parse_compact_peers_v4<T: AsRef<[u8]>>(peers: T) -> Result<Vec<SocketAddr>> {
-    use nom::number::complete::{u16, u32};
-
     let parsed_peers: IResult<&[u8], Vec<SocketAddr>> = map(
-        many0(tuple((
-            map(u32(Endianness::Big), Ipv4Addr::from),
-            u16(Endianness::Big),
-        ))),
+        many0(tuple((map(be_u32, Ipv4Addr::from), be_u16))),
         |addrs: Vec<(Ipv4Addr, u16)>| {
             addrs
                 .into_iter()
@@ -53,13 +54,8 @@ fn parse_compact_peers_v4<T: AsRef<[u8]>>(peers: T) -> Result<Vec<SocketAddr>> {
 }
 
 fn parse_compact_peers_v6<T: AsRef<[u8]>>(peers: T) -> Result<Vec<SocketAddr>> {
-    use nom::number::complete::{u128, u16};
-
     let parsed_peers: IResult<&[u8], Vec<SocketAddr>> = map(
-        many0(tuple((
-            map(u128(Endianness::Big), Ipv6Addr::from),
-            u16(Endianness::Big),
-        ))),
+        many0(tuple((map(be_u128, Ipv6Addr::from), be_u16))),
         |addrs: Vec<(Ipv6Addr, u16)>| {
             addrs
                 .into_iter()
