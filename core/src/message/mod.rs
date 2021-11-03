@@ -1,18 +1,22 @@
 use anyhow::{anyhow, bail, Result};
 use array_utils::{build_array, ToArrayUnchecked};
-mod handshake;
-
-pub use handshake::Handshake;
 use nom::{
+    branch::alt,
+    bytes::complete::take,
     combinator::{map_res, rest},
-    multi::length_value,
+    multi::{length_data, length_value},
     number::complete::{be_u32, be_u8},
-    sequence::pair,
+    sequence::{pair, tuple},
     Finish, IResult,
 };
 
 #[derive(Debug)]
 pub enum Message {
+    Handshake {
+        reserved_bytes: [u8; 8],
+        info_hash: [u8; 20],
+        peer_id: [u8; 20],
+    },
     KeepAlive,
     Choke,
     Unchoke,
@@ -128,6 +132,28 @@ fn parse_message(bytes: &[u8]) -> IResult<&[u8], Message> {
     }
 }
 
+pub fn parse_handshake(bytes: &[u8]) -> IResult<&[u8], Message> {
+    map_res(
+        tuple((
+            length_data(be_u8),
+            take(8usize),
+            take(20usize),
+            take(20usize),
+        )),
+        |(pstr, mut reserved_bytes, mut info_hash, mut peer_id): (&[u8], &[u8], &[u8], &[u8])| {
+            if pstr == b"BitTorrent protocol" {
+                Ok(Message::Handshake {
+                    reserved_bytes: unsafe { reserved_bytes.to_array_unchecked() },
+                    info_hash: unsafe { info_hash.to_array_unchecked() },
+                    peer_id: unsafe { peer_id.to_array_unchecked() },
+                })
+            } else {
+                bail!("Invalid pstr")
+            }
+        },
+    )(bytes)
+}
+
 impl Message {
     pub const KEEP_ALIVE: [u8; 4] = [0, 0, 0, 0];
     pub const CHOKE: [u8; 5] = [0, 0, 0, 1, 0];
@@ -138,11 +164,28 @@ impl Message {
     pub fn from_bytes<T: AsRef<[u8]>>(bytes: T) -> Result<Self> {
         let bytes = bytes.as_ref();
 
-        let message: IResult<&[u8], Message> = length_value(be_u32, parse_message)(bytes);
-
-        let message = message.finish().map_err(|_| anyhow!(""))?;
+        let message: IResult<&[u8], Message> =
+            alt((parse_handshake, length_value(be_u32, parse_message)))(bytes);
+        let message = message
+            .finish()
+            .map_err(|_| anyhow!("Couldn't parse message"))?;
 
         Ok(message.1)
+    }
+
+    pub fn handshake(reserved_bytes: [u8; 8], info_hash: [u8; 20], peer_id: [u8; 20]) -> [u8; 68] {
+        unsafe {
+            build_array([
+                &[
+                    19, // pstrlen. Always 19 in the 1.0 protocol
+                    66, 105, 116, 84, 111, 114, 114, 101, 110, 116, 32, 112, 114, 111, 116, 111,
+                    99, 111, 108, // pstr. Always "BitTorrent protocol" in the 1.0 protocol
+                ],
+                &reserved_bytes,
+                &info_hash,
+                &peer_id,
+            ])
+        }
     }
 
     pub fn have(piece_index: u32) -> [u8; 9] {
