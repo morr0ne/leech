@@ -11,6 +11,7 @@ use nom::{
     Finish, IResult,
 };
 
+#[derive(Debug)]
 pub enum Message {
     KeepAlive,
     Choke,
