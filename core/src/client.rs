@@ -1,17 +1,9 @@
 use anyhow::{bail, Result};
-use bytes::{Buf, BufMut, BytesMut};
-use hyper::{body, client::HttpConnector, Body, Method, Request as HttpRequest, Uri};
+use hyper::client::HttpConnector;
 use hyper_tls::HttpsConnector;
-use rand::random;
-use std::{
-    convert::TryFrom,
-    net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4},
-};
-use tokio::net::UdpSocket;
 use tracker::tracker::http::{
     AnnounceRequest as HttpAnnounceRequest, AnnounceResponse as HttpAnnounceResponse, HttpTracker,
 };
-use url::Url;
 
 pub type HttpClient<C = HttpsConnector<HttpConnector>> = hyper::Client<C>;
 
