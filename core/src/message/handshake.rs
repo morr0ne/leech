@@ -17,6 +17,7 @@ impl Handshake {
         if bytes.len() < 68 {
             bail!("Handshake too short")
         } else {
+            #[allow(clippy::type_complexity)]
             let handshake: IResult<&[u8], (&[u8], &[u8], &[u8], &[u8])> = tuple((
                 length_data(be_u8),
                 take(8usize),
