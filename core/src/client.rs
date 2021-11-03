@@ -36,7 +36,7 @@ impl TryFrom<u32> for Actions {
     }
 }
 
-const NONE: u32 = 0;
+// const NONE: u32 = 0;
 // const COMPLETED: u32 = 1;
 // const STARTED: u32 = 2;
 // const STOPPED: u32 = 3;
@@ -54,6 +54,16 @@ impl Client {
         })
     }
 
+    pub async fn announce(
+        &self,
+        url: &str,
+        announce_request: &HttpAnnounceRequest,
+    ) -> Result<HttpAnnounceResponse> {
+        self.http_tracker.announce(url, announce_request).await
+    }
+}
+
+impl Client {
     // pub async fn announce(
     //     &self,
     //     url: &Url,
@@ -67,14 +77,6 @@ impl Client {
 
     //     Ok(announce_response.peers)
     // }
-
-    pub async fn announce(
-        &self,
-        url: &str,
-        announce_request: &HttpAnnounceRequest,
-    ) -> Result<HttpAnnounceResponse> {
-        self.http_tracker.announce(url, announce_request).await
-    }
 
     // pub async fn connect_udp(&self, url: &Url) -> Result<ConnectResponse> {
     //     // Build the tracker url using ip and port
