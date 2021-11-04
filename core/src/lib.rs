@@ -4,22 +4,19 @@
 #![feature(option_result_unwrap_unchecked)]
 #![feature(generic_const_exprs)]
 
-use anyhow::{bail, Result};
-use bytes::BytesMut;
+use anyhow::Result;
 use metainfo::{bento::decode::FromBencode, MetaInfo};
+use tokio::fs;
 
-use tokio::{
-    fs,
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::TcpStream,
-};
+use tracker::tracker::http::AnnounceRequest;
 
 pub mod client;
 pub mod message;
+pub mod wire;
 
 pub use client::Client;
-pub use message::{Handshake, Message};
-use tracker::tracker::http::AnnounceRequest;
+pub use message::Message;
+pub use wire::Wire;
 
 pub async fn start(torrent: &str) -> Result<()> {
     let peer_id = peers::peer_id(b"-LE0001-");
@@ -33,7 +30,6 @@ pub async fn start(torrent: &str) -> Result<()> {
 
     if let Some(announce) = &meta_info.announce {
         println!("Found announce url: {}", announce.as_str());
-
         let info_hash = meta_info.info_hash()?;
         let left = meta_info.length();
 
@@ -60,38 +56,35 @@ pub async fn start(torrent: &str) -> Result<()> {
 
         println!("Found {} peers", peers.len());
 
-        let handshake = Handshake {
-            reserved_bytes: [0u8; 8],
-            info_hash,
-            peer_id,
-        }
-        .into_bytes();
-
         // Create tcp connection
         // If the connection is refused it probably means this peer is no good
         // In a proper client you'd want to connect to as many peers as possible and discard bad ones
         // but for the sake of simplicity I'll connect just to one for now
 
+        // Connect to peer
         println!("Creating tcp stream");
-        let mut stream = TcpStream::connect(peers[10]).await?;
-        println!("Connected to {}", stream.peer_addr()?.to_string());
+        let peer = peers[13];
+        println!("Connecting to {}", peer.to_string());
 
-        let mut buffer = BytesMut::with_capacity(65508);
-        buffer.resize(65508, 0);
+        let (mut wire, remote_peer_id) = Wire::connect(peer, info_hash, peer_id).await?;
+        println!("Connected to {}", String::from_utf8_lossy(&remote_peer_id));
 
-        stream.write(&handshake).await?;
-        let n = stream.read(&mut buffer).await?;
-        buffer.truncate(n);
-
-        println!("Received {} bytes", n);
-
-        let handshake = Handshake::from_bytes(buffer)?;
-
-        if handshake.info_hash == info_hash {
-            println!("Info hash matches")
+        while let Some(message) = wire.message_receiver.recv().await {
+            let message = message?;
+            match message {
+                Message::Unchoke => {
+                    println!("Peer stopped choking")
+                }
+                _ => {
+                    dbg!(message);
+                }
+            };
         }
 
-        println!("peer_id: {}", String::from_utf8_lossy(&handshake.peer_id));
+        // socket_write.write_all(&handshake).await?;
+        // socket_write.write_all(&Message::INTERESTED).await?;
+
+        // handle.await?;
     } else {
         // If no announce url is found it means we should lookup the DHT
         // DHT is a very complicated topic so I won't even try for now
