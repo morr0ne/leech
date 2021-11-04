@@ -469,6 +469,7 @@ dependencies = [
  "nom",
  "peers",
  "rand",
+ "thiserror",
  "tokio",
  "tokio-stream",
  "tokio-util",

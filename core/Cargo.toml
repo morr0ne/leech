@@ -16,6 +16,7 @@ hyper-tls = "0.5.0"
 metainfo = { path = "../metainfo" }
 nom = "7.0.0"
 rand = "0.8.4"
+thiserror = "1.0.30"
 tokio = { version = "1.13.0", features = ["io-std", "io-util", "fs", "net", "rt-multi-thread", "parking_lot"] }
 tokio-stream = "0.1.8"
 tokio-util = { version = "0.6.9", features = ["codec"] }
