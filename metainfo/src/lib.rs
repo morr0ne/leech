@@ -27,7 +27,7 @@ pub struct MetaInfo {
     pub created_by: Option<String>,
     /// Time of creation represented in millisecond since [UNIX epoch][`std::time::UNIX_EPOCH`]
     pub creation_date: Option<u64>,
-    /// The encoding format used by [pieces][`Info::SingleFile::pieces`]
+    /// The encoding format used by [pieces][`Info::pieces`]
     pub encoding: Option<String>,
     /// Unknown field
     pub http_seeds: Option<Vec<String>>,
@@ -40,16 +40,16 @@ pub struct MetaInfo {
 #[derive(Debug)]
 pub struct Info {
     /// The name of the file or directory to store multiple files, respecting this field is not mandatory
-    name: String,
+    pub name: String,
     /// The number of bytes in each piece
-    piece_length: u64,
+    pub piece_length: u64,
     /// String consisting of the concatenation of all 20-byte SHA1 hash values, one per piece
-    pieces: Vec<u8>,
+    pub pieces: Vec<u8>,
     /// When set to 1 clients should only announce their presence via the tracker specified by the torrent
-    private: Option<u8>,
+    pub private: Option<u8>,
     /// Unknown field
-    source: Option<String>,
-    files: FileKind,
+    pub source: Option<String>,
+    pub files: FileKind,
 }
 
 /// A dictionary containing information about the file(s) of the torrent
