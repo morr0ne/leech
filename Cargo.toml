@@ -9,6 +9,7 @@ members = [
   "magnet",
   "metainfo",
   "peers",
+  "torrent-parser",
   "tracker",
 ]
 
