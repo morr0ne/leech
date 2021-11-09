@@ -1,5 +1,5 @@
 use anyhow::Result;
-use bento::decode::FromBencode;
+use bento::FromBencode;
 use hyper::{body, client::HttpConnector};
 use hyper_tls::HttpsConnector;
 

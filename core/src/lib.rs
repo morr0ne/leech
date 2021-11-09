@@ -5,13 +5,14 @@
 #![feature(generic_const_exprs)]
 
 use anyhow::Result;
-use metainfo::{bento::decode::FromBencode, MetaInfo};
+use metainfo::{bento::FromBencode, MetaInfo};
 use tokio::fs;
 
 use tracker::tracker::http::AnnounceRequest;
 
 pub mod client;
 pub mod message;
+pub mod session;
 pub mod wire;
 
 pub use client::Client;
@@ -19,7 +20,7 @@ pub use message::Message;
 pub use wire::Wire;
 
 pub async fn start(torrent: &str) -> Result<()> {
-    let peer_id = peers::peer_id(b"-LE0001-");
+    let peer_id = peers::peer_id(b"LE", b"0001");
     println!("Peer id: {:?}", String::from_utf8_lossy(&peer_id[..]));
 
     let client = Client::new().await?;
@@ -69,17 +70,22 @@ pub async fn start(torrent: &str) -> Result<()> {
         let (mut wire, remote_peer_id) = Wire::connect(peer, info_hash, peer_id).await?;
         println!("Connected to {}", String::from_utf8_lossy(&remote_peer_id));
 
-        while let Some(message) = wire.message_receiver.recv().await {
-            let message = message?;
-            match message {
-                Message::Unchoke => {
-                    println!("Peer stopped choking")
-                }
-                _ => {
-                    dbg!(message);
-                }
-            };
-        }
+        // tokio::spawn(async move {
+        //     while let Some(message) = wire.message_receiver.recv().await {
+        //         let message = message.unwrap();
+        //         match message {
+        //             Message::Unchoke => {
+        //                 println!("Peer stopped choking")
+        //             }
+        //             _ => {
+        //                 dbg!(message);
+        //             }
+        //         };
+        //     }
+        // });
+
+        // wire.interested().await?;
+        wire.have(12).await?;
 
         // socket_write.write_all(&handshake).await?;
         // socket_write.write_all(&Message::INTERESTED).await?;

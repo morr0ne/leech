@@ -1,9 +1,5 @@
 use anyhow::Result;
-use bento::{
-    decode::{DecodingError, FromBencode, Object},
-    encode::{Encoder, ToBencode},
-    AsString,
-};
+use bento::{AsString, DecodingError, Encoder, FromBencode, Object, ToBencode};
 use sha1::{digest::FixedOutput, Digest, Sha1};
 use std::convert::TryInto;
 use url::Url;

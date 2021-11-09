@@ -1,8 +1,5 @@
 use anyhow::{anyhow, bail, Result};
-use bento::{
-    decode::{DecodingError, FromBencode, Object},
-    AsString,
-};
+use bento::{AsString, DecodingError, FromBencode, Object};
 use nom::{
     combinator::map,
     multi::many0,
