@@ -5,8 +5,10 @@ use tokio::{
     net::{tcp::OwnedWriteHalf, TcpStream, ToSocketAddrs},
     sync::mpsc::{self, UnboundedReceiver},
 };
- 
-use crate::message::{ Handshake, Message};
+
+use bitvec::prelude::*;
+
+use crate::message::{Handshake, Message};
 
 pub struct Status {
     /// Are we are choking the remote peer?
@@ -70,6 +72,7 @@ pub struct Wire {
 }
 
 impl Wire {
+    /// Connects to a remote peer
     pub async fn connect<A: ToSocketAddrs>(
         peer_address: A,
         info_hash: [u8; 20],
@@ -112,10 +115,24 @@ impl Wire {
         // Spawn a task that listen for the remote peer messages
         tokio::spawn(async move {
             let mut buffered_read_socket = BufReader::new(read_socket);
-
             loop {
-                let message = Self::read_message(&mut buffered_read_socket).await;
-                message_sender.send(message).unwrap();
+                let message = Self::read_message(&mut buffered_read_socket).await.unwrap();
+                // message_sender.send(message).unwrap();
+
+                match message {
+                    Message::Unchoke => {
+                        println!("Peer stopped choking")
+                    }
+                    Message::Unknown { id, payload } => {
+                        println!("Uknown message id {}", id)
+                    }
+                    Message::Bitfield(bitfield) => {
+                        println!("Peer sent bitfield")
+                    }
+                    _ => {
+                        dbg!(message);
+                    }
+                };
             }
         });
 
@@ -141,7 +158,16 @@ impl Wire {
                 2 => Message::Interested,
                 3 => Message::NotInterested,
                 4 => Message::Have(reader.read_u32().await?),
-                5 => Message::Bitfield, // TODO: parse bitfield
+                5 => {
+                    if len >= 1 {
+                        let mut bitfield = vec![0u8; len as usize];
+                        reader.read_exact(&mut bitfield).await?;
+
+                        Message::Bitfield(BitVec::from_vec(bitfield)) // TODO: This can panic, the error should be handled instead with try_from_vec
+                    } else {
+                        bail!("Invalid payload len for Piece message")
+                    }
+                }
                 6 => {
                     if len == 12 {
                         Message::Request {
@@ -167,9 +193,7 @@ impl Wire {
                         bail!("Invalid payload len for Piece message")
                     }
                 }
-
                 8 => {
-                    // TODO: is this the most efficient way to do this?
                     if len == 12 {
                         Message::Cancel {
                             index: reader.read_u32().await?,
@@ -187,7 +211,11 @@ impl Wire {
                         bail!("Invalid payload len for Port message")
                     }
                 }
-                _ => bail!("Invalid message id {}", id),
+                id => {
+                    let mut payload = vec![0u8; len as usize];
+                    reader.read_exact(&mut payload).await?;
+                    Message::Unknown { id, payload }
+                }
             }
         })
     }
