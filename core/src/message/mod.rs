@@ -1,6 +1,7 @@
 use array_utils::build_array;
-
 mod handshake;
+use bitvec::{order::Msb0, prelude::BitVec};
+
 pub use handshake::Handshake;
 
 #[derive(Debug)]
@@ -11,7 +12,7 @@ pub enum Message {
     Interested,
     NotInterested,
     Have(u32),
-    Bitfield,
+    Bitfield(BitVec<Msb0, u8>),
     Request {
         index: u32,
         begin: u32,
@@ -28,6 +29,10 @@ pub enum Message {
         length: u32,
     },
     Port(u16),
+    Unknown {
+        id: u8,
+        payload: Vec<u8>, // TODO: should this be a byte slice?
+    },
 }
 
 impl Message {
