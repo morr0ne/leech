@@ -1,8 +1,8 @@
 use anyhow::{anyhow, bail, Result};
 use array_utils::ToArrayUnchecked;
 use nom::{
-    bytes::complete::take, combinator::map_res, multi::length_data, number::complete::be_u8,
-    sequence::tuple, Finish, IResult,
+    bytes::complete::take, combinator::map_res, error::Error as NomError, multi::length_data,
+    number::complete::be_u8, sequence::tuple, Finish, IResult,
 };
 
 pub struct Handshake {
@@ -13,7 +13,7 @@ pub struct Handshake {
 
 impl Handshake {
     pub fn from_bytes(bytes: &[u8; 68]) -> Result<Self> {
-        let handshake: IResult<&[u8], Self> = map_res(
+        map_res(
             tuple((
                 length_data(be_u8),
                 take(8usize),
@@ -36,11 +36,9 @@ impl Handshake {
                     bail!("Invalid pstr")
                 }
             },
-        )(bytes);
-
-        handshake
-            .finish()
-            .map_err(|_| anyhow!("Failed to parse handshake"))
-            .map(|(_, handshake)| handshake)
+        )(bytes)
+        .finish()
+        .map_err(|_error: NomError<&[u8]>| anyhow!("Failed to parse handshake"))
+        .map(|(_rest, handshake)| handshake)
     }
 }
