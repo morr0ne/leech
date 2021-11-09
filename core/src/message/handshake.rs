@@ -2,7 +2,7 @@ use anyhow::{anyhow, bail, Result};
 use array_utils::ToArrayUnchecked;
 use nom::{
     bytes::complete::take, combinator::map_res, error::Error as NomError, multi::length_data,
-    number::complete::be_u8, sequence::tuple, Finish, IResult,
+    number::complete::be_u8, sequence::tuple, Finish,
 };
 
 pub struct Handshake {
