@@ -1,11 +1,7 @@
 use anyhow::{bail, Result};
-use hyper::client::HttpConnector;
-use hyper_tls::HttpsConnector;
 use tracker::tracker::http::{
     AnnounceRequest as HttpAnnounceRequest, AnnounceResponse as HttpAnnounceResponse, HttpTracker,
 };
-
-pub type HttpClient<C = HttpsConnector<HttpConnector>> = hyper::Client<C>;
 
 pub enum Actions {
     Connect = 0,
