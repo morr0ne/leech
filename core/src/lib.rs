@@ -6,6 +6,7 @@
 
 use anyhow::Result;
 use metainfo::{bento::FromBencode, MetaInfo};
+use rand::{thread_rng, Rng};
 use tokio::fs;
 
 use tracker::tracker::http::AnnounceRequest;
@@ -57,16 +58,13 @@ pub async fn start(torrent: &str) -> Result<()> {
 
         println!("Found {} peers", peers.len());
 
+        let mut rng = thread_rng();
+        let peer = peers[rng.gen_range(0..peers.len())];
+
         // Create tcp connection
         // If the connection is refused it probably means this peer is no good
         // In a proper client you'd want to connect to as many peers as possible and discard bad ones
         // but for the sake of simplicity I'll connect just to one for now
-
-        // Connect to peer
-        println!("Creating tcp stream");
-        let peer = peers[13];
-        println!("Connecting to {}", peer.to_string());
-
         let (mut wire, remote_peer_id) = Wire::connect(peer, info_hash, peer_id).await?;
         println!("Connected to {}", String::from_utf8_lossy(&remote_peer_id));
 
