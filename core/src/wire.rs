@@ -49,15 +49,23 @@ pub enum WireError {
 /// Error returned when failing to connect to a remote peer
 #[derive(Debug, Error)]
 pub enum ConnectionError {
+    /// The remote peer returned an handshake of the correct length which couldn't be parsed.
     #[error("The peer returned an invalid handshake")]
     InvalidHandshake([u8; 68]),
+    /// An error was encountered when trying to send the hanshake to the remote peer.
     #[error("Couldn't send handshake to peer")]
     Handshake(TokioIoError),
+    /// Couldn't read the handshake from the remote peer.
+    ///
+    /// When this error is returned we already enstablished a connection and sent the handshake successufully.
     #[error("Couldn't read handshake")]
     ReadHandshake(TokioIoError),
+    /// The wire wasn't able to enstablish a tcp connection with the remote peer.
+    ///
+    /// This might be either our fault or the peer fault, the underlying tokio error should be checked to be sure.
     #[error("Couldn't connect to remote peer")]
     TcpConnection(TokioIoError),
-    /// The peer returned
+    /// The remote peer returned an info hash different from the one sent
     #[error("Wrong info hash returned by peer")]
     WrongInfoHash {
         expected: [u8; 20],
