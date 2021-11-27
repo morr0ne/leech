@@ -1,13 +1,11 @@
 #![deny(future_incompatible)]
 #![deny(nonstandard_style)]
 #![deny(rust_2018_idioms)]
-#![feature(option_result_unwrap_unchecked)]
-#![feature(generic_const_exprs)]
 
 use anyhow::Result;
 use metainfo::{bento::FromBencode, MetaInfo};
 use rand::{thread_rng, Rng};
-use tokio::fs;
+use tokio::{fs, net::TcpStream};
 
 use tracker::tracker::http::AnnounceRequest;
 
@@ -19,6 +17,36 @@ pub mod wire;
 pub use client::Client;
 pub use message::Message;
 pub use wire::Wire;
+
+use crate::message::ExtendedHandshake;
+
+pub struct Status {
+    /// Are we are choking the remote peer?
+    pub am_choking: bool,
+    /// Are we are interested the remote peer?
+    pub am_interested: bool,
+    /// Is the remote peer choking us?
+    pub peer_choking: bool,
+    /// Is the remote peer interested in us?
+    pub peer_interested: bool,
+}
+
+impl Status {
+    pub fn new() -> Self {
+        Self {
+            am_choking: true,
+            am_interested: false,
+            peer_choking: true,
+            peer_interested: false,
+        }
+    }
+}
+
+impl Default for Status {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 pub async fn start(torrent: &str) -> Result<()> {
     let peer_id = peers::peer_id(b"LE", b"0001");
@@ -65,25 +93,41 @@ pub async fn start(torrent: &str) -> Result<()> {
         // If the connection is refused it probably means this peer is no good
         // In a proper client you'd want to connect to as many peers as possible and discard bad ones
         // but for the sake of simplicity I'll connect just to one for now
-        let (mut wire, remote_peer_id) = Wire::connect(peer, info_hash, peer_id).await?;
+        let stream = TcpStream::connect(peer).await?;
+        let (mut wire, remote_peer_id) = Wire::handshake(stream, info_hash, peer_id).await?;
+
         println!("Connected to {}", String::from_utf8_lossy(&remote_peer_id));
 
-        // tokio::spawn(async move {
-        //     while let Some(message) = wire.message_receiver.recv().await {
-        //         let message = message.unwrap();
-        //         match message {
-        //             Message::Unchoke => {
-        //                 println!("Peer stopped choking")
-        //             }
-        //             _ => {
-        //                 dbg!(message);
-        //             }
-        //         };
-        //     }
-        // });
+        while let Some(message) = wire.read_message().await? {
+            match message {
+                Message::Choke => {
+                    println!("Peer choking")
+                }
+                Message::Unchoke => {
+                    println!("Peer stopped choking")
+                }
+
+                Message::Unknown { id, payload } => {
+                    println!("Uknown message id {}", id)
+                }
+                Message::Bitfield(_bitfield) => {
+                    println!("Peer sent bitfield")
+                }
+                Message::Extended { id, payload } => {
+                    dbg!(id, &payload);
+                    if id == 0 {
+                        let handshake = ExtendedHandshake::from_bencode(&payload)?;
+                        dbg!(handshake);
+                    }
+                }
+                _ => {
+                    dbg!(message);
+                }
+            };
+        }
 
         // wire.interested().await?;
-        wire.have(12).await?;
+        // wire.have(12).await?;
 
         // socket_write.write_all(&handshake).await?;
         // socket_write.write_all(&Message::INTERESTED).await?;
