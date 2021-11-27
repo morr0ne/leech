@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.44"
-bento = { git = "https://github.com/morr0ne/bento",  rev = "908df49", features = ["url"] }
+bento = { git = "https://github.com/morr0ne/bento",  rev = "d9cfc17", features = ["url"] }
 form_urlencoded = "1.0.1"
 hyper = { version = "0.14.14", default-features = false, features = ["client", "http1", "http2", "runtime", "stream", "tcp"] }
 hyper-tls = "0.5.0"
