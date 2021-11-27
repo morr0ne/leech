@@ -9,6 +9,7 @@ anyhow = "1.0.44"
 array_utils = { path = "../array_utils" }
 bitvec = "0.22.3"
 bytes = "1.1.0"
+indexmap = "1.7.0"
 peers = { path = "../peers" }
 futures = "0.3.18"
 metainfo = { path = "../metainfo" }
@@ -20,6 +21,7 @@ tokio-stream = "0.1.8"
 tokio-util = { version = "0.6.9", features = ["codec"] }
 tracker = { path = "../tracker" }
 url = "2.2.2"
+bento = { git = "https://github.com/morr0ne/bento",  rev = "d9cfc17", features = ["url"] }
 
 [dev-dependencies]
 tokio-test = "0.4.2"
