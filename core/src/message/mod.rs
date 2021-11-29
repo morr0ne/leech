@@ -80,14 +80,12 @@ impl FromBencode for ExtendedHandshake {
                 b"v" => version = Some(String::decode(value)?),
                 b"yourip" => yourip = Some(String::decode(value)?),
                 b"reqq" => reqq = Some(u32::decode(value)?),
-                _unknown_field => {
-                    dbg!(String::from_utf8_lossy(key));
-                }
+                _unknown_field => value.skip()?,
             }
         }
 
         Ok(Self {
-            messages: messages.ok_or(DecodingError::Unknown)?,
+            messages: messages.ok_or(DecodingError::MissingField { field: "messages" })?,
             port,
             version,
             yourip,

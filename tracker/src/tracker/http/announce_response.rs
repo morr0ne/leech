@@ -85,7 +85,7 @@ impl FromBencode for AnnounceResponse {
                 b"peers6" => {
                     peers.extend(parse_compact_peers_v6(AsString::decode(value)?).unwrap())
                 }
-                _ => {}
+                _unknown_field => value.skip()?,
             }
         }
 
@@ -110,7 +110,7 @@ impl FromBencode for Peer {
             match key {
                 b"ip" => ip = Some(IpAddr::decode(value)?),
                 b"port" => port = Some(u16::decode(value)?),
-                _ => {}
+                _unknown_field => value.skip()?,
             }
         }
 

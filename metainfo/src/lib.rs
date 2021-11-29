@@ -120,11 +120,7 @@ impl FromBencode for MetaInfo {
                 b"httpseeds" => http_seeds = Some(Vec::decode(value)?),
                 b"info" => info = Some(Info::decode(value)?),
                 b"url-list" => url_list = Some(Vec::decode(value)?),
-                unknown_field => {
-                    return Err(DecodingError::UnexpectedField {
-                        field: String::from_utf8_lossy(unknown_field).to_string(),
-                    });
-                }
+                _unknown_field => value.skip()?,
             }
         }
 
