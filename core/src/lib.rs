@@ -2,23 +2,20 @@
 #![deny(nonstandard_style)]
 #![deny(rust_2018_idioms)]
 
-use anyhow::Result;
-use metainfo::{bento::FromBencode, MetaInfo};
-use rand::{thread_rng, Rng};
-use tokio::{fs, net::TcpStream};
-
+use anyhow::{anyhow, Result};
+use bento::FromBencode;
+use std::time::Duration;
+use tokio::{fs, net::TcpStream, time::timeout};
 use tracker::tracker::http::AnnounceRequest;
 
 pub mod client;
-pub mod message;
+pub mod meta_info;
+pub mod protocol;
 pub mod session;
-pub mod wire;
 
 pub use client::Client;
-pub use message::Message;
-pub use wire::Wire;
-
-use crate::message::ExtendedHandshake;
+pub use meta_info::MetaInfo;
+pub use protocol::*;
 
 pub struct Status {
     /// Are we are choking the remote peer?
@@ -86,17 +83,43 @@ pub async fn start(torrent: &str) -> Result<()> {
 
         println!("Found {} peers", peers.len());
 
-        let mut rng = thread_rng();
-        let peer = peers[rng.gen_range(0..peers.len())];
-
         // Create tcp connection
-        // If the connection is refused it probably means this peer is no good
-        // In a proper client you'd want to connect to as many peers as possible and discard bad ones
-        // but for the sake of simplicity I'll connect just to one for now
-        let stream = TcpStream::connect(peer).await?;
-        let (mut wire, remote_peer_id) = Wire::handshake(stream, info_hash, peer_id).await?;
+        // If the connection is refused we simply try to connect to another peer
+        let mut wire = {
+            let mut f = None;
 
-        println!("Connected to {}", String::from_utf8_lossy(&remote_peer_id));
+            for peer in peers {
+                println!("Connecting to: {}", peer);
+
+                let timeout = timeout(Duration::from_secs(3), TcpStream::connect(peer)).await;
+
+                if let Ok(Ok(stream)) = timeout {
+                    if let Ok((peer_info, wire)) = Wire::handshake(stream, info_hash, peer_id).await
+                    {
+                        println!(
+                            "Connected to {}",
+                            String::from_utf8_lossy(&peer_info.peer_id)
+                        );
+                        println!(
+                            "FAST: {}, DHT: {}, LTEP: {}",
+                            peer_info.fast_extension,
+                            peer_info.dht_extension,
+                            peer_info.extension_protocol
+                        );
+
+                        f = Some(wire);
+                        break;
+                    } else {
+                        println!("Failed to handshake with peer");
+                        continue;
+                    }
+                }
+
+                println!("Failed to connect to peer: {}", peer);
+            }
+
+            f.ok_or(anyhow!("Failed to find a peer"))?
+        };
 
         while let Some(message) = wire.read_message().await? {
             match message {

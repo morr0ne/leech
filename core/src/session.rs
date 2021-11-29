@@ -1,8 +1,6 @@
 use anyhow::Result;
 use futures::Stream;
 
-use crate::Wire;
-
 pub enum Event {}
 
 pub struct Session {
