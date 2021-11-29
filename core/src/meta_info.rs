@@ -132,7 +132,7 @@ impl FromBencode for MetaInfo {
             creation_date,
             encoding,
             http_seeds,
-            info: info.ok_or(DecodingError::Unknown)?,
+            info: info.ok_or(DecodingError::MissingField { field: "info" })?,
             url_list,
         })
     }
@@ -161,7 +161,12 @@ impl FromBencode for Info {
                 b"name" => name = Some(String::decode(value)?),
                 b"piece length" => piece_length = Some(u64::decode(value)?),
                 b"pieces" => {
-                    pieces = AsString::decode(value).map(|bytes| Some(bytes.0))?;
+                    let p = AsString::decode(value)?.0;
+                    if p.len() % 20 == 0 {
+                        pieces = Some(p);
+                    } else {
+                        return Err(DecodingError::Unknown);
+                    }
                 }
                 b"private" => private = Some(u8::decode(value)?),
                 b"source" => source = Some(String::decode(value)?),
@@ -174,15 +179,17 @@ impl FromBencode for Info {
         }
 
         Ok(Info {
-            name: name.ok_or(DecodingError::Unknown)?,
-            piece_length: piece_length.ok_or(DecodingError::Unknown)?,
-            pieces: pieces.ok_or(DecodingError::Unknown)?,
+            name: name.ok_or(DecodingError::MissingField { field: "name" })?,
+            piece_length: piece_length.ok_or(DecodingError::MissingField {
+                field: "piece_length",
+            })?,
+            pieces: pieces.ok_or(DecodingError::MissingField { field: "pieces" })?,
             private,
             source,
             files: if let Some(files) = files {
                 FileKind::MultiFile(files)
             } else {
-                let length = length.ok_or(DecodingError::Unknown)?;
+                let length = length.ok_or(DecodingError::MissingField { field: "length" })?;
                 FileKind::SingleFile { length, md5sum }
             },
         })
@@ -213,9 +220,9 @@ impl FromBencode for File {
         }
 
         Ok(File {
-            length: length.ok_or(DecodingError::Unknown)?,
+            length: length.ok_or(DecodingError::MissingField { field: "length" })?,
             md5sum,
-            path: path.ok_or(DecodingError::Unknown)?,
+            path: path.ok_or(DecodingError::MissingField { field: "path" })?,
         })
     }
 }
