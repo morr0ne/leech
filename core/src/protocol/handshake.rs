@@ -75,6 +75,7 @@ pub struct ExtendedHandshake {
     pub version: Option<String>,
     pub yourip: Option<IpAddr>,
     pub reqq: Option<u32>,
+    pub metadata_size: Option<u32>,
 }
 
 impl FromBencode for ExtendedHandshake {
@@ -87,15 +88,17 @@ impl FromBencode for ExtendedHandshake {
         let mut version = None;
         let mut yourip = None;
         let mut reqq = None;
+        let mut metadata_size = None;
 
         let mut dict_dec = object.try_dictionary()?;
         while let Some((key, value)) = dict_dec.next_pair()? {
             match key {
-                b"m" => messages = Some(IndexMap::decode(value)?),
-                b"p" => port = Some(u16::decode(value)?),
-                b"v" => version = Some(String::decode(value)?),
-                b"yourip" => yourip = Some(AsString::decode(value)?.0),
-                b"reqq" => reqq = Some(u32::decode(value)?),
+                b"m" => messages = value.decode()?,
+                b"p" => port = value.decode()?,
+                b"v" => version = value.decode()?,
+                b"yourip" => yourip = Some(value.decode::<AsString<Vec<u8>>>()?.0),
+                b"reqq" => reqq = value.decode()?,
+                b"metadata_size" => metadata_size = value.decode()?,
                 _unknown_field => value.skip()?,
             }
         }
@@ -112,63 +115,6 @@ impl FromBencode for ExtendedHandshake {
                 None
             }
         } else {
-            #[derive(Debug)]
-            pub struct ExtendedHandshake {
-                pub messages: IndexMap<String, u32>,
-                pub port: Option<u16>,
-                pub version: Option<String>,
-                pub yourip: Option<IpAddr>,
-                pub reqq: Option<u32>,
-            }
-
-            impl FromBencode for ExtendedHandshake {
-                fn decode(object: bento::Object<'_, '_>) -> Result<Self, bento::DecodingError>
-                where
-                    Self: Sized,
-                {
-                    let mut messages = None;
-                    let mut port = None;
-                    let mut version = None;
-                    let mut yourip = None;
-                    let mut reqq = None;
-
-                    let mut dict_dec = object.try_dictionary()?;
-                    while let Some((key, value)) = dict_dec.next_pair()? {
-                        match key {
-                            b"m" => messages = Some(IndexMap::decode(value)?),
-                            b"p" => port = Some(u16::decode(value)?),
-                            b"v" => version = Some(String::decode(value)?),
-                            b"yourip" => yourip = Some(AsString::decode(value)?.0),
-                            b"reqq" => reqq = Some(u32::decode(value)?),
-                            _unknown_field => value.skip()?,
-                        }
-                    }
-
-                    // TODO: should this be considered an error?
-                    let yourip = if let Some(mut ip) = yourip {
-                        if ip.len() == 4 {
-                            let ip: [u8; 4] = unsafe { ip.to_array_unchecked() };
-                            Some(IpAddr::from(ip))
-                        } else if ip.len() == 16 {
-                            let ip: [u8; 16] = unsafe { ip.to_array_unchecked() };
-                            Some(IpAddr::from(ip))
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    };
-
-                    Ok(Self {
-                        messages: messages
-                            .ok_or(DecodingError::MissingField { field: "messages" })?,
-                        port,
-                        version,
-                        yourip,
-                        reqq,
-                    })
-                }
-            }
             None
         };
 
@@ -178,6 +124,7 @@ impl FromBencode for ExtendedHandshake {
             version,
             yourip,
             reqq,
+            metadata_size,
         })
     }
 }
