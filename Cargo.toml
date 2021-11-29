@@ -7,7 +7,6 @@ members = [
   "core",
   "dht",
   "magnet",
-  "metainfo",
   "peers",
   "torrent-parser",
   "tracker",

@@ -534,10 +534,10 @@ dependencies = [
  "bytes",
  "futures",
  "indexmap",
- "metainfo",
  "nom",
  "peers",
  "rand",
+ "sha-1",
  "thiserror",
  "tokio",
  "tokio-stream",
@@ -592,16 +592,6 @@ name = "memchr"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "308cc39be01b73d0d18f82a0e7b2a3df85245f84af96fdddc5d202d27e47b86a"
-
-[[package]]
-name = "metainfo"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bento",
- "sha-1",
- "url",
-]
 
 [[package]]
 name = "minimal-lexical"
@@ -1278,7 +1268,6 @@ dependencies = [
  "form_urlencoded",
  "hyper",
  "hyper-tls",
- "metainfo",
  "nom",
  "rand",
  "tokio",

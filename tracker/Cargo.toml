@@ -17,5 +17,4 @@ url = "2.2.2"
 
 [dev-dependencies]
 array_utils = { path = "../array_utils" }
-metainfo = { version = "0.1.0", path = "../metainfo" }
 rand = "0.8.4"

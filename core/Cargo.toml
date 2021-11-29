@@ -12,7 +12,6 @@ bytes = "1.1.0"
 indexmap = "1.7.0"
 peers = { path = "../peers" }
 futures = "0.3.18"
-metainfo = { path = "../metainfo" }
 nom = "7.1.0"
 rand = "0.8.4"
 thiserror = "1.0.30"
@@ -21,6 +20,7 @@ tokio-stream = "0.1.8"
 tokio-util = { version = "0.6.9", features = ["codec"] }
 tracker = { path = "../tracker" }
 url = "2.2.2"
+sha-1 = "0.9.8"
 bento = { git = "https://github.com/morr0ne/bento",  rev = "a3cb8ee", features = ["url"] }
 
 [dev-dependencies]

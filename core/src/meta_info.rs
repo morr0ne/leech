@@ -94,7 +94,7 @@ impl MetaInfo {
     }
 }
 impl FromBencode for MetaInfo {
-    fn decode(object: Object) -> Result<Self, DecodingError>
+    fn decode(object: Object<'_, '_>) -> Result<Self, DecodingError>
     where
         Self: Sized,
     {
@@ -139,7 +139,7 @@ impl FromBencode for MetaInfo {
 }
 
 impl FromBencode for Info {
-    fn decode(object: Object) -> Result<Self, DecodingError>
+    fn decode(object: Object<'_, '_>) -> Result<Self, DecodingError>
     where
         Self: Sized,
     {
@@ -190,7 +190,7 @@ impl FromBencode for Info {
 }
 
 impl FromBencode for File {
-    fn decode(object: Object) -> Result<Self, DecodingError>
+    fn decode(object: Object<'_, '_>) -> Result<Self, DecodingError>
     where
         Self: Sized,
     {
