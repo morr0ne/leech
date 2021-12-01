@@ -5,7 +5,12 @@
 use anyhow::{anyhow, Result};
 use bento::FromBencode;
 use std::time::Duration;
-use tokio::{fs, net::TcpStream, time::timeout};
+use tokio::{
+    fs,
+    io::{AsyncRead, AsyncWrite},
+    net::TcpStream,
+    time::timeout,
+};
 use tracker::tracker::http::AnnounceRequest;
 
 pub mod client;
@@ -44,6 +49,13 @@ impl Default for Status {
         Self::new()
     }
 }
+
+pub struct Connection<S> {
+    status: Status,
+    wire: Wire<S>,
+}
+
+impl<S: AsyncRead + AsyncWrite + Unpin> Connection<S> {}
 
 pub async fn start(torrent: &str) -> Result<()> {
     let peer_id = peers::peer_id(b"LE", b"0001");
@@ -121,17 +133,26 @@ pub async fn start(torrent: &str) -> Result<()> {
             f.ok_or(anyhow!("Failed to find a peer"))?
         };
 
+        let mut status = Status::new();
+
         while let Some(message) = wire.read_message().await? {
             match message {
+                Message::KeepAlive => {}
                 Message::Choke => {
-                    println!("Peer choking")
+                    println!("Peer choking");
+                    status.peer_choking = true;
                 }
                 Message::Unchoke => {
-                    println!("Peer stopped choking")
+                    println!("Peer stopped choking");
+                    status.peer_choking = false;
                 }
-
-                Message::Unknown { id, payload } => {
-                    println!("Uknown message id {}", id)
+                Message::Interested => {
+                    println!("Peer interested");
+                    status.peer_interested = true;
+                }
+                Message::NotInterested => {
+                    println!("Peer not interested");
+                    status.peer_interested = false;
                 }
                 Message::Bitfield(_bitfield) => {
                     println!("Peer sent bitfield")
@@ -143,19 +164,14 @@ pub async fn start(torrent: &str) -> Result<()> {
                         dbg!(handshake);
                     }
                 }
+                Message::Unknown { id, payload } => {
+                    println!("Uknown message id {}", id)
+                }
                 _ => {
                     dbg!(message);
                 }
             };
         }
-
-        // wire.interested().await?;
-        // wire.have(12).await?;
-
-        // socket_write.write_all(&handshake).await?;
-        // socket_write.write_all(&Message::INTERESTED).await?;
-
-        // handle.await?;
     } else {
         // If no announce url is found it means we should lookup the DHT
         // DHT is a very complicated topic so I won't even try for now
