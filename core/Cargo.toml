@@ -21,7 +21,7 @@ tokio-util = { version = "0.6.9", features = ["codec"] }
 tracker = { path = "../tracker" }
 url = "2.2.2"
 sha-1 = "0.9.8"
-bento = { git = "https://github.com/morr0ne/bento",  rev = "49b0254", features = ["url"] }
+bento = { git = "https://github.com/morr0ne/bento",  rev = "d07a693", features = ["url"] }
 
 [dev-dependencies]
 tokio-test = "0.4.2"
