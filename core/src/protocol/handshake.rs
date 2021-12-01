@@ -96,7 +96,7 @@ impl FromBencode for ExtendedHandshake {
                 b"m" => messages = value.decode()?,
                 b"p" => port = value.decode()?,
                 b"v" => version = value.decode()?,
-                b"yourip" => yourip = Some(value.decode::<AsString<Vec<u8>>>()?.0),
+                b"yourip" => yourip = Some(AsString::decode(value)?),
                 b"reqq" => reqq = value.decode()?,
                 b"metadata_size" => metadata_size = value.decode()?,
                 _unknown_field => value.skip()?,

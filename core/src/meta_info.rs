@@ -81,7 +81,7 @@ impl MetaInfo {
 
         let mut hasher = Sha1::new();
         hasher.update(info);
-        let info_hash: [u8; 20] = hasher.finalize_fixed().try_into()?;
+        let info_hash: [u8; 20] = hasher.finalize_fixed().try_into().unwrap(); // NOTE: This shouldn't fail in theory but unless const generics is stabilized it has to stay that way
 
         Ok(info_hash)
     }
@@ -111,15 +111,15 @@ impl FromBencode for MetaInfo {
         let mut dict_dec = object.try_dictionary()?;
         while let Some((key, value)) = dict_dec.next_pair()? {
             match key {
-                b"announce" => announce = Some(Url::decode(value)?),
-                b"announce-list" => announce_list = Some(Vec::decode(value)?),
-                b"comment" => comment = Some(String::decode(value)?),
-                b"created by" => created_by = Some(String::decode(value)?),
-                b"creation date" => creation_date = Some(u64::decode(value)?),
-                b"encoding" => encoding = Some(String::decode(value)?),
-                b"httpseeds" => http_seeds = Some(Vec::decode(value)?),
-                b"info" => info = Some(Info::decode(value)?),
-                b"url-list" => url_list = Some(Vec::decode(value)?),
+                b"announce" => announce = value.decode()?,
+                b"announce-list" => announce_list = value.decode()?,
+                b"comment" => comment = value.decode()?,
+                b"created by" => created_by = value.decode()?,
+                b"creation date" => creation_date = value.decode()?,
+                b"encoding" => encoding = value.decode()?,
+                b"httpseeds" => http_seeds = value.decode()?,
+                b"info" => info = value.decode()?,
+                b"url-list" => url_list = value.decode()?,
                 _unknown_field => value.skip()?,
             }
         }
@@ -155,21 +155,21 @@ impl FromBencode for Info {
         let mut dict_dec = object.try_dictionary()?;
         while let Some((key, value)) = dict_dec.next_pair()? {
             match key {
-                b"files" => files = Some(Vec::<File>::decode(value)?),
-                b"length" => length = Some(u64::decode(value)?),
-                b"md5sum" => md5sum = Some(String::decode(value)?),
-                b"name" => name = Some(String::decode(value)?),
-                b"piece length" => piece_length = Some(u64::decode(value)?),
+                b"files" => files = value.decode()?,
+                b"length" => length = value.decode()?,
+                b"md5sum" => md5sum = value.decode()?,
+                b"name" => name = value.decode()?,
+                b"piece length" => piece_length = value.decode()?,
                 b"pieces" => {
-                    let p = AsString::decode(value)?.0;
+                    let p = AsString::decode(value)?;
                     if p.len() % 20 == 0 {
                         pieces = Some(p);
                     } else {
                         return Err(DecodingError::Unknown);
                     }
                 }
-                b"private" => private = Some(u8::decode(value)?),
-                b"source" => source = Some(String::decode(value)?),
+                b"private" => private = value.decode()?,
+                b"source" => source = value.decode()?,
                 unknown_field => {
                     return Err(DecodingError::UnexpectedField {
                         field: String::from_utf8_lossy(unknown_field).to_string(),
@@ -208,9 +208,9 @@ impl FromBencode for File {
         let mut dict_dec = object.try_dictionary()?;
         while let Some((key, value)) = dict_dec.next_pair()? {
             match key {
-                b"length" => length = Some(u64::decode(value)?),
-                b"md5sum" => md5sum = Some(String::decode(value)?),
-                b"path" => path = Some(Vec::<String>::decode(value)?),
+                b"length" => length = value.decode()?,
+                b"md5sum" => md5sum = value.decode()?,
+                b"path" => path = value.decode()?,
                 unknown_field => {
                     return Err(DecodingError::UnexpectedField {
                         field: String::from_utf8_lossy(unknown_field).to_string(),
@@ -274,7 +274,7 @@ impl ToBencode for Info {
 
             e.emit_pair(b"name", &self.name);
             e.emit_pair(b"piece length", self.piece_length);
-            e.emit_pair(b"pieces", AsString(&self.pieces));
+            e.emit_pair(b"pieces", AsString(self.pieces.clone())); // FIXME: Don't clone
             if let Some(private) = self.private {
                 e.emit_pair(b"private", private);
             }

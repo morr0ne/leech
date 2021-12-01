@@ -80,7 +80,7 @@ impl FromBencode for AnnounceResponse {
         let mut dictionary_decoder = object.try_dictionary()?;
         while let Some((key, value)) = dictionary_decoder.next_pair()? {
             match key {
-                b"interval" => interval = Some(u64::decode(value)?),
+                b"interval" => interval = value.decode()?,
                 b"peers" => peers.extend(parse_peers(value).unwrap()),
                 b"peers6" => {
                     peers.extend(parse_compact_peers_v6(AsString::decode(value)?).unwrap())
@@ -101,15 +101,15 @@ impl FromBencode for Peer {
     where
         Self: Sized,
     {
-        let mut ip = None;
+        let mut ip: Option<IpAddr> = None;
         let mut port = None;
 
         let mut dictionary_decoder = object.try_dictionary()?;
 
         while let Some((key, value)) = dictionary_decoder.next_pair()? {
             match key {
-                b"ip" => ip = Some(IpAddr::decode(value)?),
-                b"port" => port = Some(u16::decode(value)?),
+                b"ip" => ip = value.decode()?,
+                b"port" => port = value.decode()?,
                 _unknown_field => value.skip()?,
             }
         }
