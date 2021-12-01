@@ -50,7 +50,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin> Wire<S> {
     ) -> Result<(PeerInfo, Self), HandshakeError> {
         // As soon as we are connected send the handshake.
         stream
-            .write_all(&Handshake::new([0, 0, 0, 0, 0x10, 0, 0, 0], info_hash, peer_id).to_bytes())
+            .write_all(&Handshake::new([0, 0, 0, 0, 0, 0x10, 0, 0], info_hash, peer_id).to_bytes())
             .await
             .map_err(HandshakeError::Send)?;
 
