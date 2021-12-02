@@ -8,7 +8,7 @@ use std::time::Duration;
 use tokio::{
     fs,
     io::{AsyncRead, AsyncWrite},
-    net::TcpStream,
+    net::{TcpStream, ToSocketAddrs},
     time::timeout,
 };
 use tracker::tracker::http::AnnounceRequest;
@@ -17,10 +17,12 @@ pub mod client;
 pub mod meta_info;
 pub mod protocol;
 pub mod session;
+pub mod utp;
 
 pub use client::Client;
 pub use meta_info::MetaInfo;
 pub use protocol::*;
+use utp::UtpStream;
 
 pub struct Status {
     /// Are we are choking the remote peer?
@@ -53,6 +55,40 @@ impl Default for Status {
 pub struct Connection<S> {
     status: Status,
     wire: Wire<S>,
+    fast: bool,
+}
+
+pub struct ConnectionBuilder;
+
+impl ConnectionBuilder {
+    pub const fn new() -> Self {
+        ConnectionBuilder {}
+    }
+
+    pub async fn connect_tcp<A: ToSocketAddrs>(
+        addr: A,
+        info_hash: [u8; 20],
+        peer_id: [u8; 20],
+    ) -> Result<Connection<TcpStream>> {
+        let handshake = Handshake::new([0, 0, 0, 0, 0, 0x10, 0, 0], info_hash, peer_id);
+        let stream = TcpStream::connect(addr).await?;
+        let (peer_info, wire) = Wire::handshake(handshake, stream).await?;
+
+        Ok(Connection {
+            status: Status::new(),
+            wire,
+            fast: peer_info.fast_extension,
+        })
+    }
+
+    pub async fn connect_ucp<A: ToSocketAddrs>(
+        addr: A,
+        info_hash: [u8; 20],
+        peer_id: [u8; 20],
+    ) -> Result<Connection<UtpStream>> {
+        let handshake = Handshake::new([0, 0, 0, 0, 0, 0x10, 0, 0], info_hash, peer_id);
+        todo!()
+    }
 }
 
 impl<S: AsyncRead + AsyncWrite + Unpin> Connection<S> {}
@@ -106,8 +142,8 @@ pub async fn start(torrent: &str) -> Result<()> {
                 let timeout = timeout(Duration::from_secs(3), TcpStream::connect(peer)).await;
 
                 if let Ok(Ok(stream)) = timeout {
-                    if let Ok((peer_info, wire)) = Wire::handshake(stream, info_hash, peer_id).await
-                    {
+                    let handshake = Handshake::new([0, 0, 0, 0, 0, 0x10, 0, 0], info_hash, peer_id);
+                    if let Ok((peer_info, wire)) = Wire::handshake(handshake, stream).await {
                         println!(
                             "Connected to {}",
                             String::from_utf8_lossy(&peer_info.peer_id)
