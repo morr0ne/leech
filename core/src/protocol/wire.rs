@@ -44,36 +44,35 @@ pub struct PeerInfo {
 
 impl<S: AsyncRead + AsyncWrite + Unpin> Wire<S> {
     pub async fn handshake(
+        handshake: Handshake,
         mut stream: S,
-        info_hash: [u8; 20],
-        peer_id: [u8; 20],
     ) -> Result<(PeerInfo, Self), HandshakeError> {
         // As soon as we are connected send the handshake.
         stream
-            .write_all(&Handshake::new([0, 0, 0, 0, 0, 0x10, 0, 0], info_hash, peer_id).to_bytes())
+            .write_all(&handshake.as_bytes())
             .await
             .map_err(HandshakeError::Send)?;
 
         // Create a buffer for the handshake, fill it and then parse it.
-        let mut handshake_buffer = [0u8; 68];
+        let mut remote_handshake_buffer = [0u8; 68];
         stream
-            .read_exact(&mut handshake_buffer)
+            .read_exact(&mut remote_handshake_buffer)
             .await
             .map_err(HandshakeError::Read)?;
 
-        let handshake = Handshake::from_bytes(&handshake_buffer)
-            .map_err(|_error| HandshakeError::Invalid(handshake_buffer))?;
+        let remote_handshake = Handshake::from_bytes(&remote_handshake_buffer)
+            .map_err(|_error| HandshakeError::Invalid(remote_handshake_buffer))?;
 
         // Ensure the info hash matches.
-        if info_hash != handshake.info_hash {
+        if handshake.info_hash != remote_handshake.info_hash {
             return Err(HandshakeError::InfoHash {
-                expected: info_hash,
+                expected: handshake.info_hash,
                 received: handshake.info_hash,
             });
         }
 
         let reserved_bits: &BitSlice<Msb0, u8> =
-            unsafe { BitSlice::from_slice_unchecked(&handshake.reserved_bytes) };
+            unsafe { BitSlice::from_slice_unchecked(&remote_handshake.reserved_bytes) };
 
         let extension_protocol = reserved_bits[43];
         let fast_extension = reserved_bits[61];
@@ -81,7 +80,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin> Wire<S> {
 
         Ok((
             PeerInfo {
-                peer_id,
+                peer_id: remote_handshake.peer_id,
                 extension_protocol,
                 fast_extension,
                 dht_extension,

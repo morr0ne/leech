@@ -54,7 +54,7 @@ impl Handshake {
         .map(|(_rest, handshake)| handshake)
     }
 
-    pub fn to_bytes(self) -> Bytes {
+    pub fn as_bytes(&self) -> Bytes {
         let mut handshake = BytesMut::with_capacity(68);
         handshake.extend_from_slice(&[
             19, // pstrlen. Always 19 in the 1.0 protocol
