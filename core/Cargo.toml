@@ -5,7 +5,7 @@ authors = ["Federico Morrone <contact@morrone.dev>"]
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.49"
+anyhow = "1.0.51"
 array_utils = { path = "../array_utils" }
 bitvec = "0.22.3"
 bytes = "1.1.0"
@@ -20,7 +20,7 @@ tokio-stream = "0.1.8"
 tokio-util = { version = "0.6.9", features = ["codec"] }
 tracker = { path = "../tracker" }
 url = "2.2.2"
-sha-1 = "0.9.8"
+sha-1 = "0.10.0"
 bento = { git = "https://github.com/morr0ne/bento",  rev = "d07a693", features = ["url"] }
 
 [dev-dependencies]
