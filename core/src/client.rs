@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use color_eyre::eyre::{bail, Result};
 use tracker::tracker::http::{
     AnnounceRequest as HttpAnnounceRequest, AnnounceResponse as HttpAnnounceResponse, HttpTracker,
 };
@@ -11,7 +11,7 @@ pub enum Actions {
 }
 
 impl TryFrom<u32> for Actions {
-    type Error = anyhow::Error;
+    type Error = color_eyre::eyre::Error;
 
     fn try_from(value: u32) -> Result<Self> {
         match value {

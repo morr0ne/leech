@@ -1,4 +1,4 @@
-use anyhow::Result;
+use color_eyre::eyre::Result;
 use tokio::sync::{mpsc, oneshot};
 
 use crate::Piece;

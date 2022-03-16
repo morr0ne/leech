@@ -2,7 +2,7 @@
 #![deny(nonstandard_style)]
 #![deny(rust_2018_idioms)]
 
-use anyhow::{anyhow, Result};
+use color_eyre::eyre::{eyre, Result};
 use bento::FromBencode;
 use bitvec::prelude::BitVec;
 use std::time::Duration;
@@ -139,7 +139,7 @@ pub async fn start(path: &str) -> Result<()> {
                 info!("Failed to connect to peer: {}", peer);
             }
 
-            f.ok_or(anyhow!("Failed to find a peer"))?
+            f.ok_or(eyre!("Failed to find a peer"))?
         };
 
         let handle = tokio::spawn(async move {
@@ -185,7 +185,7 @@ pub async fn start(path: &str) -> Result<()> {
                 };
             }
 
-            Ok::<(), anyhow::Error>(())
+            Ok::<(), color_eyre::eyre::Error>(())
         });
 
         handle.await??

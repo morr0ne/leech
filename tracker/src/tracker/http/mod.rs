@@ -1,4 +1,4 @@
-use anyhow::Result;
+use color_eyre::eyre::Result;
 use bento::FromBencode;
 use hyper::{body, client::HttpConnector};
 use hyper_tls::HttpsConnector;

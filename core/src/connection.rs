@@ -1,5 +1,5 @@
 use crate::{utp::UtpStream, Handshake, Status, Wire};
-use anyhow::Result;
+use color_eyre::eyre::Result;
 use tokio::{
     io::{AsyncRead, AsyncWrite},
     net::{TcpStream, ToSocketAddrs},

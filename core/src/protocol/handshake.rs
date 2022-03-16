@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Result};
+use color_eyre::eyre::{eyre, bail, Result};
 use array_utils::ToArrayUnchecked;
 use bento::{AsString, DecodingError, FromBencode};
 use bytes::{Bytes, BytesMut};
@@ -50,7 +50,7 @@ impl Handshake {
             },
         )(bytes)
         .finish()
-        .map_err(|_error: NomError<&[u8]>| anyhow!("Failed to parse handshake"))
+        .map_err(|_error: NomError<&[u8]>| eyre!("Failed to parse handshake"))
         .map(|(_rest, handshake)| handshake)
     }
 

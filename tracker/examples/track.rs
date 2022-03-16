@@ -1,4 +1,4 @@
-use anyhow::Result;
+use color_eyre::eyre::Result;
 use form_urlencoded::byte_serialize;
 use hyper::{client::HttpConnector, Body, Method, Request as HttpRequest, Uri};
 use hyper_tls::HttpsConnector;
@@ -73,5 +73,6 @@ pub struct Tracker {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    color_eyre::install()?;
     Ok(())
 }

@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use color_eyre::eyre::{bail, Result};
 use data_encoding::BASE32;
 use std::convert::TryInto;
 use url::Url;

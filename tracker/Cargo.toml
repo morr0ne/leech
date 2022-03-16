@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.51"
+color-eyre = "0.6.1"
 bento = { git = "https://github.com/morr0ne/bento",  rev = "d07a693", features = ["url"] }
 form_urlencoded = "1.0.1"
 hyper = { version = "0.14.16", default-features = false, features = ["client", "http1", "http2", "runtime", "stream", "tcp"] }

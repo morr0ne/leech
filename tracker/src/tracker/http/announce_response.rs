@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Result};
+use color_eyre::eyre::{eyre, bail, Result};
 use bento::{AsString, DecodingError, FromBencode, Object};
 use nom::{
     combinator::map,
@@ -44,7 +44,7 @@ fn parse_compact_peers_v4<T: AsRef<[u8]>>(peers: T) -> Result<Vec<SocketAddr>> {
 
     let parsed_peers = parsed_peers
         .finish()
-        .map_err(|_| anyhow!("Couldn't parse compact peers v4"))?
+        .map_err(|_| eyre!("Couldn't parse compact peers v4"))?
         .1;
 
     Ok(parsed_peers)
@@ -63,7 +63,7 @@ fn parse_compact_peers_v6<T: AsRef<[u8]>>(peers: T) -> Result<Vec<SocketAddr>> {
 
     let parsed_peers = parsed_peers
         .finish()
-        .map_err(|_| anyhow!("Couldn't parse compact peers v6"))?
+        .map_err(|_| eyre!("Couldn't parse compact peers v6"))?
         .1;
 
     Ok(parsed_peers)

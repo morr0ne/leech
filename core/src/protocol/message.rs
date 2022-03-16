@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use color_eyre::eyre::{eyre, Result};
 use array_utils::ToArrayUnchecked;
 use bitvec::{order::Msb0, prelude::BitVec};
 use bytes::{Bytes, BytesMut};
@@ -26,19 +26,19 @@ impl MessageCodec {
 impl Decoder for MessageCodec {
     type Item = Message;
 
-    type Error = anyhow::Error;
+    type Error = color_eyre::eyre::Error;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         match self.inner.decode(src) {
             Ok(Some(bytes)) => Message::from_bytes(&bytes).map(Some),
             Ok(None) => Ok(None),
-            Err(err) => Err(anyhow!(err)),
+            Err(err) => Err(eyre!(err)),
         }
     }
 }
 
 impl Encoder<Message> for MessageCodec {
-    type Error = anyhow::Error;
+    type Error = color_eyre::eyre::Error;
 
     fn encode(&mut self, message: Message, dst: &mut BytesMut) -> Result<(), Self::Error> {
         dst.reserve(message.len());
@@ -244,7 +244,7 @@ impl Message {
                         if let Ok(piece_index) = payload.try_into() {
                             Ok(Message::Have(u32::from_be_bytes(piece_index)))
                         } else {
-                            Err(anyhow!("Invalid payload len"))
+                            Err(eyre!("Invalid payload len"))
                         }
                     }
                     5 => Ok(Message::Bitfield(BitVec::from_slice(payload))), // TODO: handle errors
@@ -265,7 +265,7 @@ impl Message {
                                 }),
                             })
                         } else {
-                            Err(anyhow!("Invalid payload len"))
+                            Err(eyre!("Invalid payload len"))
                         }
                     }
                     7 => {
@@ -280,7 +280,7 @@ impl Message {
                                 block: Bytes::copy_from_slice(&payload[8..]),
                             }))
                         } else {
-                            Err(anyhow!("Invalid payload len for Piece message"))
+                            Err(eyre!("Invalid payload len for Piece message"))
                         }
                     }
 
@@ -301,7 +301,7 @@ impl Message {
                                 }),
                             })
                         } else {
-                            Err(anyhow!("Invalid payload len for Cancel message"))
+                            Err(eyre!("Invalid payload len for Cancel message"))
                         }
                     }
                     9 => {
@@ -310,7 +310,7 @@ impl Message {
                                 payload.to_array_unchecked()
                             })))
                         } else {
-                            Err(anyhow!("Invalid payload len for Port message"))
+                            Err(eyre!("Invalid payload len for Port message"))
                         }
                     }
                     20 => {
@@ -326,14 +326,14 @@ impl Message {
                 },
             )(bytes)
             .finish()
-            .map_err(|_err: NomError<&[u8]>| anyhow!(""))
+            .map_err(|_err: NomError<&[u8]>| eyre!(""))
             .map(|(_rest, message)| message)
         }
     }
 }
 
 impl TryFrom<&[u8]> for Message {
-    type Error = anyhow::Error;
+    type Error = color_eyre::eyre::Error;
 
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
         Self::from_bytes(bytes)

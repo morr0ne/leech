@@ -5,7 +5,7 @@ authors = ["Federico Morrone <contact@morrone.dev>"]
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.53"
+color-eyre = "0.6.1"
 array_utils = { path = "../array_utils" }
 bitvec = "1.0.0"
 bytes = "1.1.0"
