@@ -3,6 +3,8 @@ use clap::{App, Arg};
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    tracing_subscriber::fmt::init();
+
     // Initialize cli application
     let matches = App::new("leech")
         .version("0.1.0")

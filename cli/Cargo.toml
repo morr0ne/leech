@@ -5,7 +5,9 @@ authors = ["Federico Morrone <contact@morrone.dev>"]
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.51"
-clap = { version = "3.0.0-rc.7", features = ["unicode", "wrap_help"] }
+anyhow = "1.0.53"
+clap = { version = "3.0.10", features = ["unicode", "wrap_help"] }
 leech_core = { path = "../core" }
-tokio = { version = "1.14.0", features = ["macros", "parking_lot"] }
+tokio = { version = "1.15.0", features = ["macros", "parking_lot"] }
+tracing-subscriber = { version = "0.3.6", features = ["env-filter", "parking_lot", "tracing-log"] }
+console-subscriber = { version = "0.1.1", features = ["parking_lot"] }
