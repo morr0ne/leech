@@ -12,7 +12,7 @@ hyper-tls = "0.5.0"
 nom = "7.1.0"
 rand = "0.8.4"
 tokio = { version = "1.14.0", features = ["io-std", "io-util", "fs", "net", "rt-multi-thread", "parking_lot", "macros"] }
-tokio-tungstenite = "0.16.1"
+tokio-tungstenite = "0.17.1"
 url = "2.2.2"
 
 [dev-dependencies]
