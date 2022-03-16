@@ -44,6 +44,4 @@ impl ConnectionBuilder {
     }
 }
 
-impl<S: AsyncRead + AsyncWrite + Unpin> Connection<S> {
-    
-}
+impl<S: AsyncRead + AsyncWrite + Unpin> Connection<S> {}
