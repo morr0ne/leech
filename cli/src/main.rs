@@ -1,20 +1,21 @@
 use anyhow::Result;
-use clap::{App, Arg};
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    /// Path to the torrent file
+    #[clap(short, long)]
+    torrent: String,
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
 
-    // Initialize cli application
-    let matches = App::new("leech")
-        .version("0.1.0")
-        .arg(Arg::new("torrent").required(true))
-        .get_matches();
+    let Args { torrent } = Args::parse();
 
-    // Get path to the torrent
-    let torrent = matches.value_of("torrent").unwrap();
-
-    leech_core::start(torrent).await?;
+    leech_core::start(&torrent).await?;
 
     Ok(())
 }
