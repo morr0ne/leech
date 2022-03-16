@@ -1,11 +1,10 @@
 use anyhow::Result;
-use futures::Stream;
+use tokio::sync::{mpsc, oneshot};
 
-pub enum Event {}
+use crate::Piece;
 
 pub struct Session {
     peer_id: [u8; 20],
-    // connections: Vec<Wire>,
 }
 
 impl Session {
@@ -13,17 +12,8 @@ impl Session {
         SessionBuilder::new()
     }
 
-    pub fn add_torrent(&mut self) {}
-}
-
-impl Stream for Session {
-    type Item = Result<Event>;
-
-    fn poll_next(
-        self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Option<Self::Item>> {
-        todo!()
+    pub async fn next_piece(&mut self) -> Result<Option<Piece>> {
+        Ok(None)
     }
 }
 
@@ -38,14 +28,13 @@ impl SessionBuilder {
         }
     }
 
-    pub async fn start(self) -> Session {
-        Session {
+    pub async fn connect(&mut self) -> Result<Session> {
+        Ok(Session {
             peer_id: self.peer_id,
-            // connections: Vec::new(),
-        }
+        })
     }
 
-    pub fn announce_timeout(&mut self) -> &mut Self {
+    pub fn keep_alive_interval(&mut self) -> &mut Self {
         self
     }
 
