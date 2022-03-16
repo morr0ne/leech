@@ -59,7 +59,6 @@ impl<S: AsyncRead + AsyncWrite + Unpin> Wire<S> {
             .read_exact(&mut remote_handshake_buffer)
             .await
             .map_err(HandshakeError::Read)?;
-
         let remote_handshake = Handshake::from_bytes(&remote_handshake_buffer)
             .map_err(|_error| HandshakeError::Invalid(remote_handshake_buffer))?;
 
@@ -71,7 +70,8 @@ impl<S: AsyncRead + AsyncWrite + Unpin> Wire<S> {
             });
         }
 
-        let reserved_bits: &BitSlice<Msb0, u8> =
+        // Parse the reserved bytes as bit flags
+        let reserved_bits: &BitSlice<u8, Msb0> =
             unsafe { BitSlice::from_slice_unchecked(&remote_handshake.reserved_bytes) };
 
         let extension_protocol = reserved_bits[43];
