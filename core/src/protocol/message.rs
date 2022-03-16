@@ -48,6 +48,13 @@ impl Encoder<Message> for MessageCodec {
 }
 
 #[derive(Debug)]
+pub struct Piece {
+    index: u32,
+    begin: u32,
+    block: Bytes,
+}
+
+#[derive(Debug)]
 pub enum Message {
     KeepAlive,
     Choke,
@@ -55,31 +62,13 @@ pub enum Message {
     Interested,
     NotInterested,
     Have(u32),
-    Bitfield(BitVec<Msb0, u8>),
-    Request {
-        index: u32,
-        begin: u32,
-        length: u32,
-    },
-    Piece {
-        index: u32,
-        begin: u32,
-        block: Bytes,
-    },
-    Cancel {
-        index: u32,
-        begin: u32,
-        length: u32,
-    },
+    Bitfield(BitVec<u8, Msb0>),
+    Request { index: u32, begin: u32, length: u32 },
+    Piece(Piece),
+    Cancel { index: u32, begin: u32, length: u32 },
     Port(u16),
-    Extended {
-        id: u8,
-        payload: Bytes,
-    },
-    Unknown {
-        id: u8,
-        payload: Bytes,
-    },
+    Extended { id: u8, payload: Bytes },
+    Unknown { id: u8, payload: Bytes },
 }
 
 // TODO: This can be implemented using a macro which would also easily allow for more messages
@@ -108,7 +97,7 @@ impl Message {
         Self::Have(piece_index)
     }
 
-    pub const fn bitfield(bitfield: BitVec<Msb0, u8>) -> Self {
+    pub const fn bitfield(bitfield: BitVec<u8, Msb0>) -> Self {
         Self::Bitfield(bitfield)
     }
 
@@ -121,11 +110,11 @@ impl Message {
     }
 
     pub const fn piece(index: u32, begin: u32, block: Bytes) -> Self {
-        Self::Piece {
+        Self::Piece(Piece {
             index,
             begin,
             block,
-        }
+        })
     }
 
     pub const fn cancel(index: u32, begin: u32, length: u32) -> Self {
@@ -157,7 +146,7 @@ impl Message {
             Message::Have(_) => 9,
             Message::Bitfield(bitfield) => 5 + bitfield.as_raw_slice().len(),
             Message::Request { .. } | Message::Cancel { .. } => 17,
-            Message::Piece { block, .. } => 9 + block.len(),
+            Message::Piece(piece) => 9 + piece.block.len(),
             Message::Port(_) => 7,
             Message::Extended { payload, .. } => payload.len() + 7,
             Message::Unknown { payload, .. } => payload.len() + 5,
@@ -194,11 +183,11 @@ impl Message {
                 bytes.extend_from_slice(&begin.to_be_bytes());
                 bytes.extend_from_slice(&length.to_be_bytes());
             }
-            Message::Piece {
+            Message::Piece(Piece {
                 index,
                 begin,
                 block,
-            } => {
+            }) => {
                 bytes.extend_from_slice(&(block.len() as u32 + 9).to_be_bytes());
                 bytes.extend_from_slice(&[7]);
                 bytes.extend_from_slice(&index.to_be_bytes());
@@ -258,7 +247,7 @@ impl Message {
                             Err(anyhow!("Invalid payload len"))
                         }
                     }
-                    5 => Ok(Message::Bitfield(BitVec::from_slice(payload).unwrap())), // TODO: handle errors
+                    5 => Ok(Message::Bitfield(BitVec::from_slice(payload))), // TODO: handle errors
                     6 => {
                         // TODO: is this the most efficient way to do this?
                         if payload.len() == 12 {
@@ -281,7 +270,7 @@ impl Message {
                     }
                     7 => {
                         if payload.len() >= 8 {
-                            Ok(Message::Piece {
+                            Ok(Message::Piece(Piece {
                                 index: u32::from_be_bytes(unsafe {
                                     (&payload[..4]).to_array_unchecked()
                                 }),
@@ -289,7 +278,7 @@ impl Message {
                                     (&payload[4..8]).to_array_unchecked()
                                 }),
                                 block: Bytes::copy_from_slice(&payload[8..]),
-                            })
+                            }))
                         } else {
                             Err(anyhow!("Invalid payload len for Piece message"))
                         }
