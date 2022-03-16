@@ -2,10 +2,7 @@ use crate::{Error, Result};
 use num_traits::{cast::AsPrimitive, NumCast, PrimInt, WrappingNeg};
 use paste::paste;
 use serde::{
-    de::{
-        self, Deserialize, DeserializeSeed, EnumAccess, IntoDeserializer, MapAccess, SeqAccess,
-        VariantAccess, Visitor,
-    },
+    de::{self, Deserialize, DeserializeSeed, MapAccess, SeqAccess, Visitor},
     serde_if_integer128,
 };
 
