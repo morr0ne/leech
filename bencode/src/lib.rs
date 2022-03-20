@@ -8,9 +8,10 @@
 
 mod de;
 mod error;
+mod ser;
 mod value;
 
 pub use de::{from_bytes, Deserializer};
 pub use error::{Error, Result};
+pub use ser::{to_vec, to_writer, Serializer};
 pub use value::{Integer, Value};
-// pub use crate::ser::{to_string, Serializer};

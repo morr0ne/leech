@@ -23,6 +23,8 @@ pub enum Error {
     UnexpectedToken,
     #[error("")]
     Utf8(#[from] Utf8Error),
+    #[error("")]
+    Io(#[from] std::io::Error),
 }
 
 impl ser::Error for Error {
