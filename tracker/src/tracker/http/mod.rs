@@ -1,5 +1,5 @@
-use color_eyre::eyre::Result;
 use bento::FromBencode;
+use color_eyre::eyre::Result;
 use hyper::{body, client::HttpConnector};
 use hyper_tls::HttpsConnector;
 

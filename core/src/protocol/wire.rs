@@ -1,5 +1,5 @@
-use color_eyre::eyre::Result;
 use bitvec::{order::Msb0, slice::BitSlice};
+use color_eyre::eyre::Result;
 use futures::SinkExt;
 use thiserror::Error;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, Error as TokioIoError};

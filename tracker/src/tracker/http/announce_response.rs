@@ -1,5 +1,5 @@
-use color_eyre::eyre::{eyre, bail, Result};
 use bento::{AsString, DecodingError, FromBencode, Object};
+use color_eyre::eyre::{bail, eyre, Result};
 use nom::{
     combinator::map,
     multi::many0,

@@ -1,7 +1,7 @@
-use color_eyre::eyre::{eyre, Result};
 use array_utils::ToArrayUnchecked;
 use bitvec::{order::Msb0, prelude::BitVec};
 use bytes::{Bytes, BytesMut};
+use color_eyre::eyre::{eyre, Result};
 use nom::{
     combinator::{map_res, rest},
     error::Error as NomError,

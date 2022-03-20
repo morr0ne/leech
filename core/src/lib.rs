@@ -2,9 +2,9 @@
 #![deny(nonstandard_style)]
 #![deny(rust_2018_idioms)]
 
-use color_eyre::eyre::{eyre, Result};
 use bento::FromBencode;
 use bitvec::prelude::BitVec;
+use color_eyre::eyre::{eyre, Result};
 use std::time::Duration;
 use tokio::{
     fs,

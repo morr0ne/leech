@@ -1,5 +1,5 @@
-use color_eyre::eyre::Result;
 use bento::{AsString, DecodingError, Encoder, FromBencode, Object, ToBencode};
+use color_eyre::eyre::Result;
 use sha1::{digest::FixedOutput, Digest, Sha1};
 use std::convert::TryInto;
 use url::Url;

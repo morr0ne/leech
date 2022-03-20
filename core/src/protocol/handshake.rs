@@ -1,7 +1,7 @@
-use color_eyre::eyre::{eyre, bail, Result};
 use array_utils::ToArrayUnchecked;
 use bento::{AsString, DecodingError, FromBencode};
 use bytes::{Bytes, BytesMut};
+use color_eyre::eyre::{bail, eyre, Result};
 use indexmap::IndexMap;
 use nom::{
     bytes::complete::take, combinator::map_res, error::Error as NomError, multi::length_data,
