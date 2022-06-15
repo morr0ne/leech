@@ -25,7 +25,7 @@ pub enum Error {
     Utf8(#[from] Utf8Error),
     #[error("")]
     Io(#[from] std::io::Error),
-    #[error("Unsupported type {0}")]
+    #[error("Unsupported type \"{0}\"")]
     Unsupported(&'static str),
 }
 
