@@ -220,14 +220,14 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        unimplemented!() // TODO: Either return an error or parse without respecting the spec. Making this an optional feature is probably a good idea
+        Err(Error::Unsupported("f32"))
     }
 
     fn deserialize_f64<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        unimplemented!() // TODO: Same as f32
+        Err(Error::Unsupported("f64"))
     }
 
     fn deserialize_char<V>(self, visitor: V) -> Result<V::Value>
