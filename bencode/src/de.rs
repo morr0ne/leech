@@ -52,13 +52,12 @@ macro_rules! deserialize_unsigned_integers {
 
 pub struct Deserializer<'de> {
     bytes: &'de [u8],
-    index: usize,
 }
 
 impl<'de> Deserializer<'de> {
     /// Create a new derializer.
     pub const fn from_bytes(bytes: &'de [u8]) -> Self {
-        Self { bytes, index: 0 }
+        Self { bytes }
     }
 
     /// Returns the next byte and advances the internal buffer by one.
@@ -86,7 +85,6 @@ impl<'de> Deserializer<'de> {
     /// Advances the internal buffer by one
     fn advance(&mut self) {
         self.bytes = &self.bytes[1..];
-        self.index += 1;
     }
 
     /// Take len bytes from the internal buffer and advance it
