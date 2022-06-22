@@ -52,49 +52,49 @@ macro_rules! deserialize_unsigned_integers {
 
 pub struct Deserializer<'de> {
     bytes: &'de [u8],
+    index: usize,
 }
 
 impl<'de> Deserializer<'de> {
     /// Create a new derializer.
     pub const fn from_bytes(bytes: &'de [u8]) -> Self {
-        Self { bytes }
+        Self { bytes, index: 0 }
     }
 
     /// Returns the next byte and advances the internal buffer by one.
     /// Returns None if empty.
     fn next_byte(&mut self) -> Result<u8> {
-        if self.bytes.is_empty() {
-            Err(Error::Eof)
-        } else {
-            let byte = self.bytes[0];
+        if let Some(byte) = self.bytes.get(self.index) {
             self.advance();
-            Ok(byte)
+            Ok(*byte)
+        } else {
+            Err(Error::Eof)
         }
     }
 
     /// Look at the next byte without advancing the buffer.
     /// Returns None if empty.
     fn peek_byte(&mut self) -> Result<u8> {
-        if self.bytes.is_empty() {
-            Err(Error::Eof)
+        if let Some(byte) = self.bytes.get(self.index) {
+            Ok(*byte)
         } else {
-            Ok(self.bytes[0])
+            Err(Error::Eof)
         }
     }
 
     /// Advances the internal buffer by one
     fn advance(&mut self) {
-        self.bytes = &self.bytes[1..];
+        self.index += 1;
     }
 
     /// Take len bytes from the internal buffer and advance it
     fn take(&mut self, len: usize) -> Result<&'de [u8]> {
-        if self.bytes.len() >= len {
-            let bytes = &self.bytes[..len];
-            self.bytes = &self.bytes[len..];
-            Ok(bytes)
-        } else {
+        if self.bytes.len() >= (self.index + len) {
             Err(Error::Eof)
+        } else {
+            let bytes = &self.bytes[self.index..self.index + len];
+            self.index += len;
+            Ok(bytes)
         }
     }
 
@@ -102,10 +102,10 @@ impl<'de> Deserializer<'de> {
     /// # Errors
     /// TODO
     pub fn finish(&mut self) -> Result<()> {
-        if self.bytes.is_empty() {
-            Ok(())
-        } else {
+        if self.bytes.len() > self.index {
             Err(Error::TrailingBytes)
+        } else {
+            Ok(())
         }
     }
 
