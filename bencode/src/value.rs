@@ -26,10 +26,7 @@ impl Integer {
     }
 
     pub fn is_u64(&self) -> bool {
-        match self.inner {
-            IntegerType::Positive(_) => true,
-            IntegerType::Negative(_) => false,
-        }
+        matches!(self.inner, IntegerType::Positive(_))
     }
 
     pub fn as_i64(&self) -> Option<i64> {
