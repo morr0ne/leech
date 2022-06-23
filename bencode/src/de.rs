@@ -87,17 +87,6 @@ impl<'de> Deserializer<'de> {
         self.index += 1;
     }
 
-    /// Take len bytes from the internal buffer and advance it
-    fn take(&mut self, len: usize) -> Result<&'de [u8]> {
-        if self.bytes.len() >= (self.index + len) {
-            Err(Error::Eof)
-        } else {
-            let bytes = &self.bytes[self.index..self.index + len];
-            self.index += len;
-            Ok(bytes)
-        }
-    }
-
     /// Ensures there aren't any trailing bytes
     /// # Errors
     /// TODO
@@ -165,7 +154,15 @@ impl<'de> Deserializer<'de> {
     /// Parses a byte string
     fn parse_byte_string(&mut self) -> Result<&'de [u8]> {
         let len = self.next_ascii_number_until::<usize>(false, b':')?;
-        self.take(len)
+
+        if self.bytes.len() >= (self.index + len) {
+            Err(Error::EofWhileParsingByteString)
+        } else {
+            // Takes len bytes from the internal buffer and advance it
+            let bytes = &self.bytes[self.index..self.index + len];
+            self.index += len;
+            Ok(bytes)
+        }
     }
 }
 
