@@ -155,13 +155,13 @@ impl<'de> Deserializer<'de> {
     fn parse_byte_string(&mut self) -> Result<&'de [u8]> {
         let len = self.next_ascii_number_until::<usize>(false, b':')?;
 
-        if self.bytes.len() > (self.index + len) {
-            Err(Error::EofWhileParsingByteString)
-        } else {
+        if self.bytes.len() >= (self.index + len) {
             // Takes len bytes from the internal buffer and advance it
             let bytes = &self.bytes[self.index..self.index + len];
             self.index += len;
             Ok(bytes)
+        } else {
+            Err(Error::EofWhileParsingByteString)
         }
     }
 }
