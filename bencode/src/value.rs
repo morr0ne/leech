@@ -1,11 +1,11 @@
-use indexmap::IndexMap;
 use serde_bytes::ByteBuf;
+use std::collections::BTreeMap;
 
 pub enum Value {
     ByteString(ByteBuf),
     Integer(Integer),
     List(Vec<Value>),
-    Dictionary(IndexMap<ByteBuf, Value>),
+    Dictionary(BTreeMap<ByteBuf, Value>),
 }
 
 pub struct Integer {

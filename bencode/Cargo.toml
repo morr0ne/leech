@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-indexmap = { version = "1.8.2", features = ["serde-1"] }
 num-traits = "0.2.15"
 paste = "1.0.7"
 serde = "1.0.137"
