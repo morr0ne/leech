@@ -28,10 +28,10 @@ pub enum Error {
     #[error("Unsupported type \"{0}\"")]
     Unsupported(&'static str),
     /// Unexpected end of file while parsing a byte string.
-    /// 
+    ///
     /// This usually happens when the specified length is incorrect.
     #[error("Unexpected end of file while parsing a byte string")]
-    EofWhileParsingByteString
+    EofWhileParsingByteString,
 }
 
 impl ser::Error for Error {
