@@ -6,11 +6,13 @@
 //     clippy::cargo,
 // )]
 
+mod byte_string;
 mod de;
 mod error;
 mod ser;
 mod value;
 
+pub use byte_string::ByteString;
 pub use de::{from_bytes, Deserializer};
 pub use error::{Error, Result};
 pub use ser::{to_vec, to_writer, Serializer};

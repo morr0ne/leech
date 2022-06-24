@@ -1,13 +1,13 @@
+use crate::byte_string::ByteString;
 use serde::{de::Visitor, Deserialize};
-use serde_bytes::ByteBuf;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 
 pub enum Value {
-    ByteString(ByteBuf),
+    ByteString(ByteString),
     Integer(Integer),
     List(Vec<Value>),
-    Dictionary(BTreeMap<ByteBuf, Value>),
+    Dictionary(BTreeMap<ByteString, Value>),
 }
 
 impl Debug for Value {
@@ -132,14 +132,14 @@ impl<'de> Deserialize<'de> for Value {
             where
                 E: serde::de::Error,
             {
-                Ok(Value::ByteString(ByteBuf::from(value)))
+                Ok(Value::ByteString(ByteString::from(value)))
             }
 
             fn visit_bytes<E>(self, value: &[u8]) -> Result<Self::Value, E>
             where
                 E: serde::de::Error,
             {
-                Ok(Value::ByteString(ByteBuf::from(value)))
+                Ok(Value::ByteString(ByteString::from(value)))
             }
 
             fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
