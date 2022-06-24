@@ -252,7 +252,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        visitor.visit_borrowed_bytes(self.parse_byte_string()?)
+        visitor.visit_bytes(self.parse_byte_string()?)
     }
 
     fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value>
