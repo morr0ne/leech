@@ -187,7 +187,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         match self.peek_byte()? {
             b'i' => self.deserialize_i64(visitor),
-            b'0'..=b'9' => self.deserialize_str(visitor),
+            b'0'..=b'9' => self.deserialize_bytes(visitor),
             b'l' => self.deserialize_seq(visitor),
             b'd' => self.deserialize_map(visitor),
             _ => Err(Error::UnexpectedToken),
@@ -357,7 +357,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        self.deserialize_str(visitor)
+        self.deserialize_bytes(visitor)
     }
 
     fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value>
