@@ -1,10 +1,8 @@
 use serde::{de::Visitor, Deserialize};
 use serde_bytes::ByteBuf;
 use std::collections::BTreeMap;
+use std::fmt::Debug;
 
-
-// TODO: manually implement Debug
-#[derive(Debug)]
 pub enum Value {
     ByteString(ByteBuf),
     Integer(Integer),
@@ -12,12 +10,42 @@ pub enum Value {
     Dictionary(BTreeMap<ByteBuf, Value>),
 }
 
-#[derive(Debug)]
+impl Debug for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ByteString(value) => f
+                .debug_tuple("ByteString")
+                .field(&String::from_utf8_lossy(value))
+                .finish(),
+            Self::Integer(value) => f.debug_tuple("Integer").field(value).finish(),
+            Self::List(value) => {
+                f.write_str("List(")?;
+                Debug::fmt(value, f)?;
+                f.write_str(")")
+            }
+            Self::Dictionary(value) => {
+                f.write_str("Dictionary(")?;
+                Debug::fmt(value, f)?;
+                f.write_str(")")
+            }
+        }
+    }
+}
+
 pub struct Integer {
     inner: IntegerType,
 }
 
-#[derive(Debug)]
+impl Debug for Integer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // f.debug_struct("Integer").field("inner", &self.inner).finish()
+        match self.inner {
+            IntegerType::Negative(n) => write!(f, "{n}"),
+            IntegerType::Positive(n) => write!(f, "{n}"),
+        }
+    }
+}
+
 enum IntegerType {
     Negative(i64),
     Positive(u64),
