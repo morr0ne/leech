@@ -114,7 +114,7 @@ impl<'de> Deserializer<'de> {
                 }
                 token => {
                     break if token != until {
-                        Err(Error::UnexpectedToken)
+                        Err(Error::unexpected_token("", token))
                     } else if negative {
                         Ok(significand.wrapping_neg())
                     } else {
@@ -142,12 +142,12 @@ impl<'de> Deserializer<'de> {
                     match self.next_byte()? {
                         b'e' => Ok(N::zero()),
                         b'0'..=b'9' => Err(Error::LeadingZero), // The only valid case for a leading zero is simply 0, any other number is invalid
-                        _ => Err(Error::UnexpectedToken), // The only possible valid token at the end is "e"
+                        token => Err(Error::unexpected_token("e", token)), // The only possible valid token at the end is "e"
                     }
                 }
             }
             b'1'..=b'9' => self.next_ascii_number_until(negative, b'e'),
-            _ => Err(Error::UnexpectedToken),
+            token => Err(Error::unexpected_token("number between 0-9", token)),
         }
     }
 
@@ -190,7 +190,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             b'0'..=b'9' => self.deserialize_bytes(visitor),
             b'l' => self.deserialize_seq(visitor),
             b'd' => self.deserialize_map(visitor),
-            _ => Err(Error::UnexpectedToken),
+            token => Err(Error::unexpected_token("one of: i, 0-9, l, d", token)),
         }
     }
 
@@ -296,7 +296,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         match self.next_byte()? {
             b'l' => visitor.visit_seq(self),
-            _ => Err(Error::UnexpectedToken),
+            token => Err(Error::unexpected_token("l", token)),
         }
     }
 
@@ -325,7 +325,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         match self.next_byte()? {
             b'd' => visitor.visit_map(self),
-            _ => Err(Error::UnexpectedToken),
+            token => Err(Error::unexpected_token("d", token)),
         }
     }
 

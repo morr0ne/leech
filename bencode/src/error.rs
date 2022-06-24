@@ -17,13 +17,13 @@ pub enum Error {
     LeadingZero,
     #[error("Negative zero is not a valid bencode number")]
     NegativeZero,
-    #[error("")]
+    #[error("Invalid type")]
     InvalidType,
-    #[error("")]
-    UnexpectedToken,
-    #[error("")]
+    #[error("Unexpected Token {found}, expected {expected}")]
+    UnexpectedToken { expected: &'static str, found: u8 },
+    #[error("Error while parsing utf8 value")]
     Utf8(#[from] Utf8Error),
-    #[error("")]
+    #[error("Io Error")]
     Io(#[from] std::io::Error),
     #[error("Unsupported type \"{0}\"")]
     Unsupported(&'static str),
@@ -32,6 +32,12 @@ pub enum Error {
     /// This usually happens when the specified length is incorrect.
     #[error("Unexpected end of file while parsing a byte string")]
     EofWhileParsingByteString,
+}
+
+impl Error {
+    pub const fn unexpected_token(expected: &'static str, found: u8) -> Self {
+        Self::UnexpectedToken { expected, found }
+    }
 }
 
 impl ser::Error for Error {
