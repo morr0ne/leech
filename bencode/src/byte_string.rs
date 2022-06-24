@@ -1,4 +1,3 @@
-
 /*
 The current code was adapted from the serde_bytes witch contains the following copyright notice.
 
@@ -19,7 +18,6 @@ The above copyright notice and this permission notice
 shall be included in all copies or substantial portions
 of the Software.
 */
-
 
 use std::{
     boxed::Box,
@@ -82,7 +80,7 @@ impl ByteString {
 
 impl Debug for ByteString {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        Debug::fmt(&self.bytes, f)
+        f.write_str(&String::from_utf8_lossy(self))
     }
 }
 
