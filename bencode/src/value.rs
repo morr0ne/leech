@@ -2,6 +2,9 @@ use serde::{de::Visitor, Deserialize};
 use serde_bytes::ByteBuf;
 use std::collections::BTreeMap;
 
+
+// TODO: manually implement Debug
+#[derive(Debug)]
 pub enum Value {
     ByteString(ByteBuf),
     Integer(Integer),
@@ -9,10 +12,12 @@ pub enum Value {
     Dictionary(BTreeMap<ByteBuf, Value>),
 }
 
+#[derive(Debug)]
 pub struct Integer {
     inner: IntegerType,
 }
 
+#[derive(Debug)]
 enum IntegerType {
     Negative(i64),
     Positive(u64),
