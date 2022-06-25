@@ -32,6 +32,13 @@ pub enum Error {
     /// This usually happens when the specified length is incorrect.
     #[error("Unexpected end of file while parsing a byte string")]
     EofWhileParsingByteString,
+
+    #[error("Expected a dictionary, found a byte string instead")]
+    ExpectedDictionaryFoundByteString,
+    #[error("Expected a dictionary, found an integer instead")]
+    ExpectedDictionaryFoundInteger,
+    #[error("Expected a dictionary, found a list instead")]
+    ExpectedDictionaryFoundList,
 }
 
 impl Error {

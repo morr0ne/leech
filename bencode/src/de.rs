@@ -325,6 +325,9 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         match self.next_byte()? {
             b'd' => visitor.visit_map(self),
+            b'l' => Err(Error::ExpectedDictionaryFoundList),
+            b'i' => Err(Error::ExpectedDictionaryFoundInteger),
+            b'0'..=b'9' => Err(Error::ExpectedDictionaryFoundByteString),
             token => Err(Error::unexpected_token("d", token)),
         }
     }
