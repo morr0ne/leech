@@ -39,6 +39,9 @@ pub enum Error {
     ExpectedDictionaryFoundInteger,
     #[error("Expected a dictionary, found a list instead")]
     ExpectedDictionaryFoundList,
+
+    #[error("Unsorted keys")]
+    UnsortedKeys,
 }
 
 impl Error {
