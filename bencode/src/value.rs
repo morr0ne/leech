@@ -217,4 +217,38 @@ impl Serialize for Integer {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::{ByteString, Integer, Value};
+    use serde_test::{assert_tokens, Token};
+    use std::collections::BTreeMap;
+
+    #[test]
+    fn deserialize_and_serialize_dictionary() {
+        let mut map = BTreeMap::new();
+        map.insert(ByteString::from("a"), Value::Integer(Integer::from(10u64)));
+        map.insert(ByteString::from("c"), Value::Integer(Integer::from(10u64)));
+        map.insert(ByteString::from("d"), Value::Integer(Integer::from(10u64)));
+        map.insert(ByteString::from("b"), Value::Integer(Integer::from(10u64)));
+        map.insert(ByteString::from("e"), Value::Integer(Integer::from(10u64)));
+
+        let len = map.len();
+
+        assert_tokens(
+            &Value::Dictionary(map),
+            &[
+                Token::Map { len: Some(len) },
+                Token::Bytes(b"a"),
+                Token::U64(10),
+                Token::Bytes(b"b"),
+                Token::U64(10),
+                Token::Bytes(b"c"),
+                Token::U64(10),
+                Token::Bytes(b"d"),
+                Token::U64(10),
+                Token::Bytes(b"e"),
+                Token::U64(10),
+                Token::MapEnd,
+            ],
+        )
+    }
+}
