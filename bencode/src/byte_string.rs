@@ -48,8 +48,8 @@ impl ByteString {
     }
 
     /// Construct a new, empty `ByteString` with the specified capacity.
-    pub fn with_capacity(cap: usize) -> Self {
-        ByteString::from(Vec::with_capacity(cap))
+    pub fn with_capacity(capacity: usize) -> Self {
+        ByteString::from(Vec::with_capacity(capacity))
     }
 
     /// Wrap existing bytes in a `ByteString`.
