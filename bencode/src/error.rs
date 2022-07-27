@@ -42,6 +42,9 @@ pub enum Error {
 
     #[error("Unsorted keys")]
     UnsortedKeys,
+
+    #[error("Integer out of bound")]
+    OutOfBound,
 }
 
 impl Error {
