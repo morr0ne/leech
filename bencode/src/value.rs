@@ -1,7 +1,7 @@
+use serde::{de::Visitor, Deserialize, Serialize};
+use std::{collections::BTreeMap, fmt::Debug};
+
 use crate::byte_string::ByteString;
-use serde::{de::Visitor, Deserialize};
-use std::collections::BTreeMap;
-use std::fmt::Debug;
 
 pub enum Value {
     ByteString(ByteString),
@@ -187,7 +187,31 @@ impl<'de> Deserialize<'de> for Value {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    
+impl Serialize for Value {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            Value::ByteString(byte_string) => byte_string.serialize(serializer),
+            Value::Integer(integer) => integer.serialize(serializer),
+            Value::List(list) => list.serialize(serializer),
+            Value::Dictionary(dictionary) => dictionary.serialize(serializer),
+        }
+    }
 }
+
+impl Serialize for Integer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self.inner {
+            IntegerType::Negative(integer) => serializer.serialize_i64(integer),
+            IntegerType::Positive(integer) => serializer.serialize_u64(integer),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {}
