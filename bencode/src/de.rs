@@ -110,10 +110,12 @@ impl<'de> Deserializer<'de> {
         loop {
             match self.next_byte()? {
                 integer @ b'0'..=b'9' => {
+                    // To convert an ascii number to an actuall number we can just subtract the ascii rappresentation of 0
                     let digit = (integer - b'0').as_();
 
                     let max = N::max_value();
 
+                    // Checks if the number would overflow
                     if significand >= max / 10u8.as_()
                         && (significand > max / 10u8.as_() || digit > max % 10u8.as_())
                     {
