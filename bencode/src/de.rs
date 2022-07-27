@@ -110,7 +110,11 @@ impl<'de> Deserializer<'de> {
         loop {
             match self.next_byte()? {
                 integer @ b'0'..=b'9' => {
-                    significand = significand * 10u8.as_() + (integer - b'0').as_()
+                    if let Some(n) = significand.checked_mul(&10u8.as_()) {
+                        significand = n + (integer - b'0').as_()
+                    } else {
+                        return Err(Error::OutOfBound);
+                    }
                 }
                 token => {
                     break if token != until {
