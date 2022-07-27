@@ -110,10 +110,16 @@ impl<'de> Deserializer<'de> {
         loop {
             match self.next_byte()? {
                 integer @ b'0'..=b'9' => {
-                    if let Some(n) = significand.checked_mul(&10u8.as_()) {
-                        significand = n + (integer - b'0').as_()
-                    } else {
+                    let digit = (integer - b'0').as_();
+
+                    let max = N::max_value();
+
+                    if significand >= max / 10u8.as_()
+                        && (significand > max / 10u8.as_() || digit > max % 10u8.as_())
+                    {
                         return Err(Error::OutOfBound);
+                    } else {
+                        significand = significand * 10u8.as_() + digit;
                     }
                 }
                 token => {
