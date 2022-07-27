@@ -409,3 +409,6 @@ impl<'de> MapAccess<'de> for Deserializer<'de> {
         seed.deserialize(&mut *self)
     }
 }
+
+#[cfg(test)]
+mod tests {}
