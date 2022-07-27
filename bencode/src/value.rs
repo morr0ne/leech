@@ -3,6 +3,7 @@ use std::{collections::BTreeMap, fmt::Debug};
 
 use crate::byte_string::ByteString;
 
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub enum Value {
     ByteString(ByteString),
     Integer(Integer),
@@ -32,6 +33,7 @@ impl Debug for Value {
     }
 }
 
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub struct Integer {
     inner: IntegerType,
 }
@@ -46,6 +48,7 @@ impl Debug for Integer {
     }
 }
 
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
 enum IntegerType {
     Negative(i64),
     Positive(u64),
