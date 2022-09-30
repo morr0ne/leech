@@ -5,8 +5,8 @@ authors = ["Federico Morrone <contact@morrone.dev>"]
 edition = "2021"
 
 [dependencies]
+clap = { version = "4.0.4", default-features = false, features = ["help", "usage", "wrap_help", "derive", "std"] }
 color-eyre = "0.6.1"
-clap = { version = "3.1.18", features = ["derive", "unicode", "wrap_help"] }
 leech_core = { path = "../core" }
 tokio = { version = "1.19.0", features = ["macros", "parking_lot"] }
 tracing-subscriber = { version = "0.3.11", features = ["env-filter", "parking_lot", "tracing-log"] }
