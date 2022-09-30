@@ -10,4 +10,3 @@ clap = { version = "3.1.18", features = ["derive", "unicode", "wrap_help"] }
 leech_core = { path = "../core" }
 tokio = { version = "1.19.0", features = ["macros", "parking_lot"] }
 tracing-subscriber = { version = "0.3.11", features = ["env-filter", "parking_lot", "tracing-log"] }
-console-subscriber = { version = "0.1.6", features = ["parking_lot"] }
