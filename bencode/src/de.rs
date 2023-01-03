@@ -167,6 +167,10 @@ impl<'de> Deserializer<'de> {
     fn parse_byte_string(&mut self) -> Result<&'de [u8]> {
         let len = self.next_ascii_number_until::<usize>(false, b':')?;
 
+        if len == 0 {
+            return Ok(&[]);
+        }
+
         if let Some(computed_index) = self.index.checked_mul(len) {
             if self.bytes.len() >= (computed_index) {
                 let bytes = &self.bytes[self.index..computed_index];
@@ -428,4 +432,12 @@ impl<'de> MapAccess<'de> for Deserializer<'de> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+
+    use crate::from_bytes;
+
+    #[test]
+    fn zero_lenght_byte_string() {
+        assert_eq!("", from_bytes::<&'static str>(b"0:").unwrap())
+    }
+}
