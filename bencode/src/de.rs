@@ -409,11 +409,13 @@ impl<'de> MapAccess<'de> for Deserializer<'de> {
     where
         K: DeserializeSeed<'de>,
     {
-        if let b'e' = self.peek_byte()? {
-            self.advance();
-            Ok(None)
-        } else {
-            seed.deserialize(&mut *self).map(Some)
+        match self.peek_byte()? {
+            b'e' => {
+                self.advance();
+                Ok(None)
+            }
+            b'0'..=b'9' => seed.deserialize(&mut *self).map(Some),
+            token => Err(Error::unexpected_token("number between 0-9", token)),
         }
     }
 
