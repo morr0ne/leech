@@ -19,8 +19,12 @@ pub enum Error {
     NegativeZero,
     #[error("Invalid type")]
     InvalidType,
-    #[error("Unexpected Token {found}, expected {expected}")]
-    UnexpectedToken { expected: &'static str, found: u8 },
+    #[error("Unexpected Token {found} at index {index}, expected {expected}")]
+    UnexpectedToken {
+        expected: &'static str,
+        found: u8,
+        index: usize,
+    },
     #[error("Error while parsing utf8 value")]
     Utf8(#[from] Utf8Error),
     #[error("Io Error")]
@@ -48,8 +52,12 @@ pub enum Error {
 }
 
 impl Error {
-    pub const fn unexpected_token(expected: &'static str, found: u8) -> Self {
-        Self::UnexpectedToken { expected, found }
+    pub const fn unexpected_token(expected: &'static str, found: u8, index: usize) -> Self {
+        Self::UnexpectedToken {
+            expected,
+            found,
+            index,
+        }
     }
 }
 

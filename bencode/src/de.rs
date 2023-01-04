@@ -126,7 +126,7 @@ impl<'de> Deserializer<'de> {
                 }
                 token => {
                     break if token != until {
-                        Err(Error::unexpected_token("", token))
+                        Err(Error::unexpected_token("", token, self.index))
                     } else if negative {
                         Ok(significand.wrapping_neg())
                     } else {
@@ -154,12 +154,16 @@ impl<'de> Deserializer<'de> {
                     match self.next_byte()? {
                         b'e' => Ok(N::zero()),
                         b'0'..=b'9' => Err(Error::LeadingZero), // The only valid case for a leading zero is simply 0, any other number is invalid
-                        token => Err(Error::unexpected_token("e", token)), // The only possible valid token at the end is "e"
+                        token => Err(Error::unexpected_token("e", token, self.index)), // The only possible valid token at the end is "e"
                     }
                 }
             }
             b'1'..=b'9' => self.next_ascii_number_until(negative, b'e'),
-            token => Err(Error::unexpected_token("number between 0-9", token)),
+            token => Err(Error::unexpected_token(
+                "number between 0-9",
+                token,
+                self.index,
+            )),
         }
     }
 
@@ -209,7 +213,11 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             b'0'..=b'9' => self.deserialize_bytes(visitor),
             b'l' => self.deserialize_seq(visitor),
             b'd' => self.deserialize_map(visitor),
-            token => Err(Error::unexpected_token("one of: i, 0-9, l, d", token)),
+            token => Err(Error::unexpected_token(
+                "one of: i, 0-9, l, d",
+                token,
+                self.index,
+            )),
         }
     }
 
@@ -315,7 +323,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         match self.next_byte()? {
             b'l' => visitor.visit_seq(self),
-            token => Err(Error::unexpected_token("l", token)),
+            token => Err(Error::unexpected_token("l", token, self.index)),
         }
     }
 
@@ -347,7 +355,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             b'l' => Err(Error::ExpectedDictionaryFoundList),
             b'i' => Err(Error::ExpectedDictionaryFoundInteger),
             b'0'..=b'9' => Err(Error::ExpectedDictionaryFoundByteString),
-            token => Err(Error::unexpected_token("d", token)),
+            token => Err(Error::unexpected_token("d", token, self.index)),
         }
     }
 
@@ -419,7 +427,11 @@ impl<'de> MapAccess<'de> for Deserializer<'de> {
                 Ok(None)
             }
             b'0'..=b'9' => seed.deserialize(&mut *self).map(Some),
-            token => Err(Error::unexpected_token("number between 0-9", token)),
+            token => Err(Error::unexpected_token(
+                "number between 0-9",
+                token,
+                self.index,
+            )),
         }
     }
 
