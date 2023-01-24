@@ -175,7 +175,7 @@ impl<'de> Deserializer<'de> {
             return Ok(&[]);
         }
 
-        if let Some(computed_index) = self.index.checked_mul(len) {
+        if let Some(computed_index) = self.index.checked_add(len) {
             if self.bytes.len() >= (computed_index) {
                 let bytes = &self.bytes[self.index..computed_index];
                 self.index = computed_index;
