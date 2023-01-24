@@ -15,5 +15,5 @@ mod value;
 pub use byte_string::ByteString;
 pub use de::{from_bytes, Deserializer};
 pub use error::{Error, Result};
-pub use ser::{to_vec, to_writer, Serializer};
+pub use ser::{to_bytes, to_writer, Serializer};
 pub use value::{Integer, Value};

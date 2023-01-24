@@ -90,7 +90,7 @@ impl MetaInfo {
     pub fn info_hash(&self) -> Result<[u8; 20]> {
         // Following spec, we first convert back into bencode
         // let info = self.info.to_bencode()?; // TODO: better error handeling
-        let info = bencode::to_vec(&self.info)?;
+        let info = bencode::to_bytes(&self.info)?;
 
         let mut hasher = Sha1::new();
         hasher.update(&info);

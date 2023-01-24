@@ -10,7 +10,7 @@ where
     value.serialize(&mut ser)
 }
 
-pub fn to_vec<T>(value: &T) -> Result<Vec<u8>>
+pub fn to_bytes<T>(value: &T) -> Result<Vec<u8>>
 where
     T: ?Sized + Serialize,
 {
