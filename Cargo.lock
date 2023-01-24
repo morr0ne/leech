@@ -680,6 +680,7 @@ dependencies = [
  "peers",
  "rand",
  "serde",
+ "serde_bytes",
  "sha-1",
  "thiserror",
  "tokio",

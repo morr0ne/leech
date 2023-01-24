@@ -25,6 +25,7 @@ bento = { git = "https://github.com/morr0ne/bento",  rev = "d07a693", features =
 tracing = "0.1.34"
 bencode = { version = "0.1.0", path = "../bencode" }
 serde = { version = "1.0.152", features = ["derive"] }
+serde_bytes = "0.11.8"
 
 [dev-dependencies]
 tokio-test = "0.4.2"
