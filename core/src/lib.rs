@@ -73,8 +73,9 @@ pub async fn start(path: &str) -> Result<()> {
     let client = Client::new().await?;
 
     info!("Parsing torrent");
-    let t = fs::read(path).await?;
-    let meta_info = MetaInfo::from_bencode(&t).expect("Failed to parse torrent file");
+    let torrent = fs::read(path).await?;
+    // let meta_info = MetaInfo::from_bencode(&torrent).expect("Failed to parse torrent file");
+    let meta_info: MetaInfo = bencode::from_bytes(&torrent).expect("Failed to parse torrent file");
 
     if let Some(announce) = &meta_info.announce {
         info!("Found announce url: {}", announce.as_str());
