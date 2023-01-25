@@ -1,5 +1,7 @@
+use std::collections::BTreeSet;
+
 use crate::{Error, Result};
-use serde::ser::{self, Serialize};
+use serde::ser::{self, Serialize, SerializeMap};
 
 pub fn to_writer<W, T>(writer: W, value: &T) -> Result<()>
 where
@@ -32,6 +34,20 @@ where
     }
 }
 
+pub struct StructSerializer<'a, W: 'a> {
+    serializer: &'a mut Serializer<W>,
+    dictionary: BTreeSet<&'static str>,
+}
+
+impl<'a, W> StructSerializer<'a, W> {
+    pub fn new(serializer: &'a mut Serializer<W>) -> Self {
+        Self {
+            serializer,
+            dictionary: BTreeSet::new(),
+        }
+    }
+}
+
 impl<'a, W> ser::Serializer for &'a mut Serializer<W>
 where
     W: std::io::Write,
@@ -43,8 +59,8 @@ where
     type SerializeTuple = Self;
     type SerializeTupleStruct = Self;
     type SerializeTupleVariant = Self;
-    type SerializeMap = Self;
-    type SerializeStruct = Self;
+    type SerializeMap = StructSerializer<'a, W>;
+    type SerializeStruct = StructSerializer<'a, W>;
     type SerializeStructVariant = Self;
 
     fn serialize_bool(self, value: bool) -> Result<Self::Ok> {
@@ -92,11 +108,11 @@ where
         Ok(())
     }
 
-    fn serialize_f32(self, value: f32) -> Result<Self::Ok> {
+    fn serialize_f32(self, _value: f32) -> Result<Self::Ok> {
         todo!()
     }
 
-    fn serialize_f64(self, value: f64) -> Result<Self::Ok> {
+    fn serialize_f64(self, _value: f64) -> Result<Self::Ok> {
         todo!()
     }
 
@@ -131,7 +147,7 @@ where
         todo!()
     }
 
-    fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok> {
+    fn serialize_unit_struct(self, _name: &'static str) -> Result<Self::Ok> {
         todo!()
     }
 
@@ -153,10 +169,10 @@ where
 
     fn serialize_newtype_variant<T: ?Sized>(
         self,
-        name: &'static str,
-        variant_index: u32,
-        variant: &'static str,
-        value: &T,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _value: &T,
     ) -> Result<Self::Ok>
     where
         T: Serialize,
@@ -164,48 +180,48 @@ where
         todo!()
     }
 
-    fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
+    fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq> {
         self.writer.write_all(b"l")?;
         Ok(self)
     }
 
-    fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
+    fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple> {
         todo!()
     }
 
     fn serialize_tuple_struct(
         self,
-        name: &'static str,
-        len: usize,
+        _name: &'static str,
+        _len: usize,
     ) -> Result<Self::SerializeTupleStruct> {
         todo!()
     }
 
     fn serialize_tuple_variant(
         self,
-        name: &'static str,
-        variant_index: u32,
-        variant: &'static str,
-        len: usize,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _len: usize,
     ) -> Result<Self::SerializeTupleVariant> {
         todo!()
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap> {
         self.writer.write_all(b"d")?;
-        Ok(self)
+        Ok(StructSerializer::new(self))
     }
 
     fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeStruct> {
-        self.serialize_map(None)
+        self.serialize_map(None) // There is no reason to pass along the len since we are using a BTreeSet
     }
 
     fn serialize_struct_variant(
         self,
-        name: &'static str,
-        variant_index: u32,
-        variant: &'static str,
-        len: usize,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _len: usize,
     ) -> Result<Self::SerializeStructVariant> {
         todo!()
     }
@@ -291,7 +307,7 @@ impl<'a, W> ser::SerializeTupleVariant for &'a mut Serializer<W> {
     }
 }
 
-impl<'a, W> ser::SerializeMap for &'a mut Serializer<W>
+impl<'a, W> ser::SerializeMap for StructSerializer<'a, W>
 where
     W: std::io::Write,
 {
@@ -303,36 +319,46 @@ where
     where
         T: Serialize,
     {
-        key.serialize(&mut **self)
+        // key.serialize(&mut **self)
+        unreachable!()
     }
 
     fn serialize_value<T: ?Sized>(&mut self, value: &T) -> Result<()>
     where
         T: Serialize,
     {
-        value.serialize(&mut **self)
+        unreachable!()
     }
 
     fn end(self) -> Result<Self::Ok> {
-        self.writer.write_all(b"e")?;
+        self.serializer.writer.write_all(b"e")?;
+
         Ok(())
     }
 
-    // fn serialize_entry<K: ?Sized, V: ?Sized>(
-    //     &mut self,
-    //     key: &K,
-    //     value: &V,
-    // ) -> Result<(), Self::Error>
-    // where
-    //     K: Serialize,
-    //     V: Serialize,
-    // {
-    //     self.serialize_key(key)?;
-    //     self.serialize_value(value)
-    // }
+    fn serialize_entry<K: ?Sized, V: ?Sized>(
+        &mut self,
+        key: &K,
+        value: &V,
+    ) -> Result<(), Self::Error>
+    where
+        K: Serialize,
+        V: Serialize,
+    {
+        // let s = &mut *self;
+        // let serializer = &mut *s.serializer;
+        // let key = serializer
+
+        // self.serialize_key(key)?;
+        // self.serialize_value(value)
+
+        // let key = self.serializer.serialize(key)?;
+
+        Ok(())
+    }
 }
 
-impl<'a, W> ser::SerializeStruct for &'a mut Serializer<W>
+impl<'a, W> ser::SerializeStruct for StructSerializer<'a, W>
 where
     W: std::io::Write,
 {
@@ -348,12 +374,11 @@ where
     where
         T: Serialize,
     {
-        key.serialize(&mut **self)?;
-        value.serialize(&mut **self)
+        self.serialize_entry(key, value)
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.writer.write_all(b"e")?;
+        self.serializer.writer.write_all(b"e")?;
         Ok(())
     }
 }
