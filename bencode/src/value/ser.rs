@@ -1,6 +1,8 @@
+use std::collections::BTreeMap;
+
 use serde::{ser::Impossible, Serialize};
 
-use crate::{value::Value, ByteString, Error};
+use crate::{ser::MapKeySerializer, to_value, value::Value, ByteString, Error};
 
 impl Serialize for Value {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -36,7 +38,7 @@ impl serde::Serializer for Serializer {
     type Error = Error;
 
     // TODO: remove all this impossible with actual serializers.
-    type SerializeSeq = Impossible<Value, Error>;
+    type SerializeSeq = SerializeVec;
 
     type SerializeTuple = Impossible<Value, Error>;
 
@@ -44,7 +46,7 @@ impl serde::Serializer for Serializer {
 
     type SerializeTupleVariant = Impossible<Value, Error>;
 
-    type SerializeMap = Impossible<Value, Error>;
+    type SerializeMap = SerializeMap;
 
     type SerializeStruct = Impossible<Value, Error>;
 
@@ -166,7 +168,9 @@ impl serde::Serializer for Serializer {
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        todo!()
+        Ok(SerializeVec {
+            vec: Vec::with_capacity(len.unwrap_or(0)),
+        })
     }
 
     fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple, Self::Error> {
@@ -192,7 +196,7 @@ impl serde::Serializer for Serializer {
     }
 
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        todo!()
+        Ok(SerializeMap::new())
     }
 
     fn serialize_struct(
@@ -211,5 +215,80 @@ impl serde::Serializer for Serializer {
         len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
         todo!()
+    }
+}
+
+pub struct SerializeVec {
+    vec: Vec<Value>,
+}
+
+impl serde::ser::SerializeSeq for SerializeVec {
+    type Ok = Value;
+    type Error = Error;
+
+    fn serialize_element<T>(&mut self, value: &T) -> Result<(), Error>
+    where
+        T: ?Sized + Serialize,
+    {
+        self.vec.push(to_value(value)?);
+        Ok(())
+    }
+
+    fn end(self) -> Result<Value, Error> {
+        Ok(Value::List(self.vec))
+    }
+}
+
+pub struct SerializeMap {
+    dictionary: BTreeMap<ByteString, Value>,
+}
+
+impl SerializeMap {
+    pub const fn new() -> Self {
+        Self {
+            dictionary: BTreeMap::new(),
+        }
+    }
+}
+
+impl serde::ser::SerializeMap for SerializeMap {
+    type Ok = Value;
+
+    type Error = Error;
+
+    fn serialize_key<T: ?Sized>(&mut self, key: &T) -> Result<(), Error>
+    where
+        T: Serialize,
+    {
+        // key.serialize(&mut **self)
+        unreachable!()
+    }
+
+    fn serialize_value<T: ?Sized>(&mut self, value: &T) -> Result<(), Error>
+    where
+        T: Serialize,
+    {
+        unreachable!()
+    }
+
+    fn serialize_entry<K: ?Sized, V: ?Sized>(
+        &mut self,
+        key: &K,
+        value: &V,
+    ) -> Result<(), Self::Error>
+    where
+        K: Serialize,
+        V: Serialize,
+    {
+        let key = key.serialize(MapKeySerializer::new())?;
+        let value = value.serialize(Serializer::new())?;
+
+        self.dictionary.insert(key, value);
+
+        Ok(())
+    }
+
+    fn end(self) -> Result<Self::Ok, Error> {
+        Ok(Value::Dictionary(self.dictionary))
     }
 }

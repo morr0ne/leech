@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::{ByteString, Error, Result, Value};
+use crate::{value::Serializer as ValueSerializer, ByteString, Error, Result, Value};
 use serde::ser::{self, Impossible, Serialize, SerializeMap};
 
 pub fn to_writer<W, T>(writer: W, value: &T) -> Result<()>
@@ -142,7 +142,7 @@ where
     }
 
     fn serialize_none(self) -> Result<Self::Ok> {
-        Ok(())
+        Err(Error::Unsupported("None"))
     }
 
     fn serialize_some<T: ?Sized>(self, value: &T) -> Result<Self::Ok>
@@ -534,11 +534,19 @@ where
         V: Serialize,
     {
         let key = key.serialize(MapKeySerializer::new())?;
+        let value = value.serialize(ValueSerializer::new())?;
+
+        self.dictionary.insert(key, value);
 
         Ok(())
     }
 
     fn end(self) -> Result<Self::Ok> {
+        for (key, value) in self.dictionary {
+            key.serialize(&mut *self.serializer)?;
+            value.serialize(&mut *self.serializer)?;
+        }
+
         self.serializer.writer.write_all(b"e")?;
 
         Ok(())
@@ -565,8 +573,7 @@ where
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.serializer.writer.write_all(b"e")?;
-        Ok(())
+        SerializeMap::end(self)
     }
 }
 
