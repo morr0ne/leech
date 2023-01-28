@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{Error, Result, Value};
-use serde::ser::{self, Serialize, SerializeMap};
+use serde::ser::{self, Impossible, Serialize, SerializeMap};
 
 pub fn to_writer<W, T>(writer: W, value: &T) -> Result<()>
 where
@@ -36,7 +36,7 @@ where
 
 pub struct StructSerializer<'a, W: 'a> {
     serializer: &'a mut Serializer<W>,
-    dictionary: BTreeMap<&'static str, Value>,
+    dictionary: BTreeMap<String, Value>,
 }
 
 impl<'a, W> StructSerializer<'a, W> {
@@ -45,6 +45,14 @@ impl<'a, W> StructSerializer<'a, W> {
             serializer,
             dictionary: BTreeMap::new(),
         }
+    }
+}
+
+pub struct MapKeySerializer;
+
+impl MapKeySerializer {
+    pub const fn new() -> Self {
+        Self {}
     }
 }
 
@@ -227,6 +235,191 @@ where
     }
 }
 
+impl ser::Serializer for MapKeySerializer {
+    type Ok = String;
+
+    type Error = Error;
+
+    type SerializeSeq = Impossible<String, Error>;
+
+    type SerializeTuple = Impossible<String, Error>;
+
+    type SerializeTupleStruct = Impossible<String, Error>;
+
+    type SerializeTupleVariant = Impossible<String, Error>;
+
+    type SerializeMap = Impossible<String, Error>;
+
+    type SerializeStruct = Impossible<String, Error>;
+
+    type SerializeStructVariant = Impossible<String, Error>;
+
+    fn serialize_str(self, value: &str) -> std::result::Result<Self::Ok, Self::Error> {
+        Ok(value.to_string())
+    }
+
+    fn serialize_bool(self, v: bool) -> std::result::Result<Self::Ok, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_i8(self, v: i8) -> std::result::Result<Self::Ok, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_i16(self, v: i16) -> std::result::Result<Self::Ok, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_i32(self, v: i32) -> std::result::Result<Self::Ok, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_i64(self, v: i64) -> std::result::Result<Self::Ok, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_u8(self, v: u8) -> std::result::Result<Self::Ok, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_u16(self, v: u16) -> std::result::Result<Self::Ok, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_u32(self, v: u32) -> std::result::Result<Self::Ok, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_u64(self, v: u64) -> std::result::Result<Self::Ok, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_f32(self, v: f32) -> std::result::Result<Self::Ok, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_f64(self, v: f64) -> std::result::Result<Self::Ok, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_char(self, v: char) -> std::result::Result<Self::Ok, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_bytes(self, v: &[u8]) -> std::result::Result<Self::Ok, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_none(self) -> std::result::Result<Self::Ok, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_some<T: ?Sized>(self, value: &T) -> std::result::Result<Self::Ok, Self::Error>
+    where
+        T: Serialize,
+    {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_unit(self) -> std::result::Result<Self::Ok, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_unit_struct(
+        self,
+        name: &'static str,
+    ) -> std::result::Result<Self::Ok, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_unit_variant(
+        self,
+        name: &'static str,
+        variant_index: u32,
+        variant: &'static str,
+    ) -> std::result::Result<Self::Ok, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_newtype_struct<T: ?Sized>(
+        self,
+        name: &'static str,
+        value: &T,
+    ) -> std::result::Result<Self::Ok, Self::Error>
+    where
+        T: Serialize,
+    {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_newtype_variant<T: ?Sized>(
+        self,
+        name: &'static str,
+        variant_index: u32,
+        variant: &'static str,
+        value: &T,
+    ) -> std::result::Result<Self::Ok, Self::Error>
+    where
+        T: Serialize,
+    {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_seq(
+        self,
+        len: Option<usize>,
+    ) -> std::result::Result<Self::SerializeSeq, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_tuple(self, len: usize) -> std::result::Result<Self::SerializeTuple, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_tuple_struct(
+        self,
+        name: &'static str,
+        len: usize,
+    ) -> std::result::Result<Self::SerializeTupleStruct, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_tuple_variant(
+        self,
+        name: &'static str,
+        variant_index: u32,
+        variant: &'static str,
+        len: usize,
+    ) -> std::result::Result<Self::SerializeTupleVariant, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_map(
+        self,
+        len: Option<usize>,
+    ) -> std::result::Result<Self::SerializeMap, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_struct(
+        self,
+        name: &'static str,
+        len: usize,
+    ) -> std::result::Result<Self::SerializeStruct, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+
+    fn serialize_struct_variant(
+        self,
+        name: &'static str,
+        variant_index: u32,
+        variant: &'static str,
+        len: usize,
+    ) -> std::result::Result<Self::SerializeStructVariant, Self::Error> {
+        Err(Error::MapKeyMustBeString)
+    }
+}
+
 impl<'a, W> ser::SerializeSeq for &'a mut Serializer<W>
 where
     W: std::io::Write,
@@ -339,7 +532,7 @@ where
         K: Serialize,
         V: Serialize,
     {
-        // self.dictionary.insert(key, value);
+        let key = key.serialize(MapKeySerializer::new())?;
 
         Ok(())
     }
