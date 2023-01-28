@@ -1,5 +1,5 @@
 use array_utils::ToArrayUnchecked;
-use bencode::ByteString;
+use bde::ByteString;
 use bytes::{Bytes, BytesMut};
 use color_eyre::eyre::{bail, eyre, Result};
 use indexmap::IndexMap;

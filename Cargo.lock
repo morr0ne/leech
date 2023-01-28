@@ -79,17 +79,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
 
 [[package]]
-name = "bencode"
+name = "bde"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c78065f62c3f7cac9bf14bbc13b53b3f5b38ed13a8c9bc6b9a681522a23df81b"
 dependencies = [
- "color-eyre",
  "num-traits",
  "paste",
  "serde",
- "serde_bencode",
- "serde_bytes",
- "serde_derive",
- "serde_test",
  "thiserror",
 ]
 
@@ -669,7 +666,7 @@ name = "leech_core"
 version = "0.1.0"
 dependencies = [
  "array_utils",
- "bencode",
+ "bde",
  "bitvec",
  "bytes",
  "color-eyre",
@@ -1207,16 +1204,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_bencode"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "934d8bdbaa0126dafaea9a8833424a211d9661897717846c6bb782349ca1c30d"
-dependencies = [
- "serde",
- "serde_bytes",
-]
-
-[[package]]
 name = "serde_bytes"
 version = "0.11.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1234,15 +1221,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "serde_test"
-version = "1.0.152"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3611210d2d67e3513204742004d6ac6f589e521861dabb0f649b070eea8bed9e"
-dependencies = [
- "serde",
 ]
 
 [[package]]

@@ -10,7 +10,6 @@ members = [
   "peers",
   "torrent-parser",
   "tracker",
-  "bencode"
 ]
 
 [profile.release]

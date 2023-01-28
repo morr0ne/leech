@@ -74,7 +74,7 @@ pub async fn start(path: &str) -> Result<()> {
     info!("Parsing torrent");
     let torrent = fs::read(path).await?;
     // let meta_info = MetaInfo::from_bencode(&torrent).expect("Failed to parse torrent file");
-    let meta_info: MetaInfo = bencode::from_bytes(&torrent).expect("Failed to parse torrent file");
+    let meta_info: MetaInfo = bde::from_bytes(&torrent).expect("Failed to parse torrent file");
 
     if let Some(announce) = &meta_info.announce {
         info!("Found announce url: {}", announce.as_str());
@@ -173,7 +173,7 @@ pub async fn start(path: &str) -> Result<()> {
                         dbg!(id, &payload);
                         if id == 0 {
                             // let handshake = ExtendedHandshake::from_bencode(&payload)?;
-                            let handshake: ExtendedHandshake = bencode::from_bytes(&payload)?;
+                            let handshake: ExtendedHandshake = bde::from_bytes(&payload)?;
                             dbg!(handshake);
                         }
                     }
