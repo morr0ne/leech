@@ -10,7 +10,7 @@ mod byte_string;
 mod de;
 mod error;
 mod ser;
-mod value;
+pub mod value;
 
 pub use byte_string::ByteString;
 pub use de::{from_bytes, Deserializer};
