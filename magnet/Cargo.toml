@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-color-eyre = "0.6.1"
-data-encoding = "2.3.2"
+color-eyre = "0.6.2"
+data-encoding = "2.3.3"
 hex = "0.4.3"
-url = "2.2.2"
+url = "2.3.1"
