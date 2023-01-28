@@ -1,12 +1,14 @@
+use serde::Serialize;
 use std::{collections::BTreeMap, fmt::Debug};
 
-use crate::byte_string::ByteString;
+use crate::{byte_string::ByteString, Error};
 
 mod de;
 mod integer;
 mod ser;
 
 pub use integer::Integer;
+pub use ser::Serializer;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub enum Value {
@@ -36,6 +38,13 @@ impl Debug for Value {
             }
         }
     }
+}
+
+pub fn to_value<T>(value: T) -> Result<Value, Error>
+where
+    T: Serialize,
+{
+    value.serialize(Serializer)
 }
 
 #[cfg(test)]
