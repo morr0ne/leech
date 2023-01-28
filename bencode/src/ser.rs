@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use crate::{Error, Result, Value};
 use serde::ser::{self, Impossible, Serialize, SerializeMap};
@@ -72,6 +72,7 @@ where
     type SerializeStructVariant = Self;
 
     fn serialize_bool(self, value: bool) -> Result<Self::Ok> {
+        // TODO: This should be optional behavior or removed.
         self.writer.write_all(if value { b"i1e" } else { b"i0e" })?;
         Ok(())
     }
