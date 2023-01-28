@@ -50,8 +50,8 @@ pub enum Error {
     #[error("Integer out of bound")]
     OutOfBound,
 
-    #[error("Map key must be a string")]
-    MapKeyMustBeString,
+    #[error("Map key must be a byte string")]
+    MapKeyMustBeByteString,
 }
 
 impl Error {

@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::{Error, Result, Value};
+use crate::{ByteString, Error, Result, Value};
 use serde::ser::{self, Impossible, Serialize, SerializeMap};
 
 pub fn to_writer<W, T>(writer: W, value: &T) -> Result<()>
@@ -36,7 +36,7 @@ where
 
 pub struct StructSerializer<'a, W: 'a> {
     serializer: &'a mut Serializer<W>,
-    dictionary: BTreeMap<String, Value>,
+    dictionary: BTreeMap<ByteString, Value>,
 }
 
 impl<'a, W> StructSerializer<'a, W> {
@@ -237,100 +237,100 @@ where
 }
 
 impl ser::Serializer for MapKeySerializer {
-    type Ok = String;
+    type Ok = ByteString;
 
     type Error = Error;
 
-    type SerializeSeq = Impossible<String, Error>;
+    type SerializeSeq = Impossible<ByteString, Error>;
 
-    type SerializeTuple = Impossible<String, Error>;
+    type SerializeTuple = Impossible<ByteString, Error>;
 
-    type SerializeTupleStruct = Impossible<String, Error>;
+    type SerializeTupleStruct = Impossible<ByteString, Error>;
 
-    type SerializeTupleVariant = Impossible<String, Error>;
+    type SerializeTupleVariant = Impossible<ByteString, Error>;
 
-    type SerializeMap = Impossible<String, Error>;
+    type SerializeMap = Impossible<ByteString, Error>;
 
-    type SerializeStruct = Impossible<String, Error>;
+    type SerializeStruct = Impossible<ByteString, Error>;
 
-    type SerializeStructVariant = Impossible<String, Error>;
+    type SerializeStructVariant = Impossible<ByteString, Error>;
 
     fn serialize_str(self, value: &str) -> std::result::Result<Self::Ok, Self::Error> {
-        Ok(value.to_string())
+        Ok(ByteString::from(value))
+    }
+
+    fn serialize_bytes(self, value: &[u8]) -> std::result::Result<Self::Ok, Self::Error> {
+        Ok(ByteString::from(value))
     }
 
     fn serialize_bool(self, v: bool) -> std::result::Result<Self::Ok, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_i8(self, v: i8) -> std::result::Result<Self::Ok, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_i16(self, v: i16) -> std::result::Result<Self::Ok, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_i32(self, v: i32) -> std::result::Result<Self::Ok, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_i64(self, v: i64) -> std::result::Result<Self::Ok, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_u8(self, v: u8) -> std::result::Result<Self::Ok, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_u16(self, v: u16) -> std::result::Result<Self::Ok, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_u32(self, v: u32) -> std::result::Result<Self::Ok, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_u64(self, v: u64) -> std::result::Result<Self::Ok, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_f32(self, v: f32) -> std::result::Result<Self::Ok, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_f64(self, v: f64) -> std::result::Result<Self::Ok, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_char(self, v: char) -> std::result::Result<Self::Ok, Self::Error> {
-        Err(Error::MapKeyMustBeString)
-    }
-
-    fn serialize_bytes(self, v: &[u8]) -> std::result::Result<Self::Ok, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_none(self) -> std::result::Result<Self::Ok, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_some<T: ?Sized>(self, value: &T) -> std::result::Result<Self::Ok, Self::Error>
     where
         T: Serialize,
     {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_unit(self) -> std::result::Result<Self::Ok, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_unit_struct(
         self,
         name: &'static str,
     ) -> std::result::Result<Self::Ok, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_unit_variant(
@@ -339,7 +339,7 @@ impl ser::Serializer for MapKeySerializer {
         variant_index: u32,
         variant: &'static str,
     ) -> std::result::Result<Self::Ok, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_newtype_struct<T: ?Sized>(
@@ -350,7 +350,7 @@ impl ser::Serializer for MapKeySerializer {
     where
         T: Serialize,
     {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_newtype_variant<T: ?Sized>(
@@ -363,18 +363,18 @@ impl ser::Serializer for MapKeySerializer {
     where
         T: Serialize,
     {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_seq(
         self,
         len: Option<usize>,
     ) -> std::result::Result<Self::SerializeSeq, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_tuple(self, len: usize) -> std::result::Result<Self::SerializeTuple, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_tuple_struct(
@@ -382,7 +382,7 @@ impl ser::Serializer for MapKeySerializer {
         name: &'static str,
         len: usize,
     ) -> std::result::Result<Self::SerializeTupleStruct, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_tuple_variant(
@@ -392,14 +392,14 @@ impl ser::Serializer for MapKeySerializer {
         variant: &'static str,
         len: usize,
     ) -> std::result::Result<Self::SerializeTupleVariant, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_map(
         self,
         len: Option<usize>,
     ) -> std::result::Result<Self::SerializeMap, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_struct(
@@ -407,7 +407,7 @@ impl ser::Serializer for MapKeySerializer {
         name: &'static str,
         len: usize,
     ) -> std::result::Result<Self::SerializeStruct, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 
     fn serialize_struct_variant(
@@ -417,7 +417,7 @@ impl ser::Serializer for MapKeySerializer {
         variant: &'static str,
         len: usize,
     ) -> std::result::Result<Self::SerializeStructVariant, Self::Error> {
-        Err(Error::MapKeyMustBeString)
+        Err(Error::MapKeyMustBeByteString)
     }
 }
 
