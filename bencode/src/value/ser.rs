@@ -18,6 +18,18 @@ impl Serialize for Value {
 
 pub struct Serializer;
 
+impl Serializer {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Default for Serializer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl serde::Serializer for Serializer {
     type Ok = Value;
 
