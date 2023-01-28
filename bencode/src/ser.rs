@@ -118,11 +118,11 @@ where
     }
 
     fn serialize_f32(self, _value: f32) -> Result<Self::Ok> {
-        todo!()
+        Err(Error::Unsupported("f32"))
     }
 
     fn serialize_f64(self, _value: f64) -> Result<Self::Ok> {
-        todo!()
+        Err(Error::Unsupported("f64"))
     }
 
     fn serialize_char(self, value: char) -> Result<Self::Ok> {
