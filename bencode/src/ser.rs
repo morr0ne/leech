@@ -1,6 +1,6 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
-use crate::{Error, Result};
+use crate::{Error, Result, Value};
 use serde::ser::{self, Serialize, SerializeMap};
 
 pub fn to_writer<W, T>(writer: W, value: &T) -> Result<()>
@@ -36,14 +36,14 @@ where
 
 pub struct StructSerializer<'a, W: 'a> {
     serializer: &'a mut Serializer<W>,
-    dictionary: BTreeSet<&'static str>,
+    dictionary: BTreeMap<&'static str, Value>,
 }
 
 impl<'a, W> StructSerializer<'a, W> {
     pub fn new(serializer: &'a mut Serializer<W>) -> Self {
         Self {
             serializer,
-            dictionary: BTreeSet::new(),
+            dictionary: BTreeMap::new(),
         }
     }
 }
@@ -330,12 +330,6 @@ where
         unreachable!()
     }
 
-    fn end(self) -> Result<Self::Ok> {
-        self.serializer.writer.write_all(b"e")?;
-
-        Ok(())
-    }
-
     fn serialize_entry<K: ?Sized, V: ?Sized>(
         &mut self,
         key: &K,
@@ -345,14 +339,13 @@ where
         K: Serialize,
         V: Serialize,
     {
-        // let s = &mut *self;
-        // let serializer = &mut *s.serializer;
-        // let key = serializer
+        // self.dictionary.insert(key, value);
 
-        // self.serialize_key(key)?;
-        // self.serialize_value(value)
+        Ok(())
+    }
 
-        // let key = self.serializer.serialize(key)?;
+    fn end(self) -> Result<Self::Ok> {
+        self.serializer.writer.write_all(b"e")?;
 
         Ok(())
     }
