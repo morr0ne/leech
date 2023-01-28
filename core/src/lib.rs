@@ -2,7 +2,6 @@
 #![deny(nonstandard_style)]
 #![deny(rust_2018_idioms)]
 
-use bento::FromBencode;
 use bitvec::prelude::BitVec;
 use color_eyre::eyre::{eyre, Result};
 use std::time::Duration;
@@ -173,7 +172,8 @@ pub async fn start(path: &str) -> Result<()> {
                     Message::Extended { id, payload } => {
                         dbg!(id, &payload);
                         if id == 0 {
-                            let handshake = ExtendedHandshake::from_bencode(&payload)?;
+                            // let handshake = ExtendedHandshake::from_bencode(&payload)?;
+                            let handshake: ExtendedHandshake = bencode::from_bytes(&payload)?;
                             dbg!(handshake);
                         }
                     }

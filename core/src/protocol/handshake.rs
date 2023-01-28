@@ -1,5 +1,5 @@
 use array_utils::ToArrayUnchecked;
-use bento::{AsString, DecodingError, FromBencode};
+use bencode::ByteString;
 use bytes::{Bytes, BytesMut};
 use color_eyre::eyre::{bail, eyre, Result};
 use indexmap::IndexMap;
@@ -7,7 +7,8 @@ use nom::{
     bytes::complete::take, combinator::map_res, error::Error as NomError, multi::length_data,
     number::complete::be_u8, sequence::tuple, Finish,
 };
-use std::net::IpAddr;
+use serde::{Deserialize, Serialize};
+use std::{collections::BTreeMap, net::IpAddr};
 
 pub struct Handshake {
     pub reserved_bytes: [u8; 8],
@@ -68,63 +69,19 @@ impl Handshake {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ExtendedHandshake {
-    pub messages: IndexMap<String, u32>,
+    #[serde(rename = "m")]
+    pub messages: BTreeMap<String, u32>,
+    #[serde(rename = "p", skip_serializing_if = "Option::is_none")]
     pub port: Option<u16>,
+    #[serde(rename = "v", skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
-    pub yourip: Option<IpAddr>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    // pub yourip: Option<IpAddr>,
+    pub yourip: Option<ByteString>, // TODO: This needs a custom deserializer.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub reqq: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata_size: Option<u32>,
-}
-
-impl FromBencode for ExtendedHandshake {
-    fn decode(object: bento::Object<'_, '_>) -> Result<Self, bento::DecodingError>
-    where
-        Self: Sized,
-    {
-        let mut messages = None;
-        let mut port = None;
-        let mut version = None;
-        let mut yourip = None;
-        let mut reqq = None;
-        let mut metadata_size = None;
-
-        let mut dict_dec = object.try_dictionary()?;
-        while let Some((key, value)) = dict_dec.next_pair()? {
-            match key {
-                b"m" => messages = value.decode()?,
-                b"p" => port = value.decode()?,
-                b"v" => version = value.decode()?,
-                b"yourip" => yourip = Some(AsString::decode(value)?),
-                b"reqq" => reqq = value.decode()?,
-                b"metadata_size" => metadata_size = value.decode()?,
-                _unknown_field => value.skip()?,
-            }
-        }
-
-        // TODO: should this be considered an error?
-        let yourip = if let Some(mut ip) = yourip {
-            if ip.len() == 4 {
-                let ip: [u8; 4] = unsafe { ip.to_array_unchecked() };
-                Some(IpAddr::from(ip))
-            } else if ip.len() == 16 {
-                let ip: [u8; 16] = unsafe { ip.to_array_unchecked() };
-                Some(IpAddr::from(ip))
-            } else {
-                None
-            }
-        } else {
-            None
-        };
-
-        Ok(Self {
-            messages: messages.ok_or(DecodingError::MissingField { field: "messages" })?,
-            port,
-            version,
-            yourip,
-            reqq,
-            metadata_size,
-        })
-    }
 }

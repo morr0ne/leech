@@ -670,7 +670,6 @@ version = "0.1.0"
 dependencies = [
  "array_utils",
  "bencode",
- "bento",
  "bitvec",
  "bytes",
  "color-eyre",
